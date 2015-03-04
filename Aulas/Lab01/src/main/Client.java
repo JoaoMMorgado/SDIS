@@ -6,23 +6,34 @@ import java.net.InetAddress;
 
 public class Client {
 	public static void main(String args[]) throws Exception {
-		if (args.length != 3) {
-			// "Usage: java Client <host_name> <port_number> <oper> <opnd>*"
+		if (args.length < 4 || args.length > 5) {
 			System.out
-					.println("Usage: java Client <host_name> <port_number> <msg>");
+					.println("Usage: java Client <host_name> <port_number> <oper> <opnd>*");
 			System.exit(0);
 		}
 
-		System.out.println("===Cliente===\n\thostname: " + args[0]
-				+ "\n\tPorta: " + args[1] + "\n\tMensagem: " + args[2]);
-		
+		System.out.println("===Client===\n\thostname: " + args[0]
+				+ "\n\tPort: " + args[1] + "\n\tMessage: " + args[2]);
+
 		int port = Integer.parseInt(args[1]);
+		String oper = args[2].toUpperCase();
+
+		String Owner = args[3];
 
 		DatagramSocket socket = new DatagramSocket();
-		byte[] sendBuf = args[2].getBytes();
+
+		String msg = oper + " " + Owner;
+
+		if (oper.equals("REGISTER")) {
+			String Plate = args[4].toUpperCase();
+			msg += " " + Plate;
+		}
+
+		byte[] sendBuf = msg.getBytes();
+
 		InetAddress address = InetAddress.getByName(args[0]);
 
-		//send response
+		// send response
 		DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length,
 				address, port);
 		socket.send(packet);
@@ -34,7 +45,7 @@ public class Client {
 
 		String received = new String(packet.getData(), 0, packet.getLength());
 		// String msg = packet.toString();
-		System.out.println("\n\nResposta: " + received);
+		System.out.println("\n\nServer Response: " + received);
 
 		socket.close();
 
