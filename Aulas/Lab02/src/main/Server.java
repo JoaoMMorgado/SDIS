@@ -8,13 +8,16 @@ import java.util.regex.Pattern;
 public class Server {
 
 	public static void main(String args[]) throws Exception {
-		if (args.length != 1) {
-			System.out.println("Usage: java Server <port>");
+		if (args.length != 3) {
+			System.out
+					.println("Usage: java Server <srvc_port> <mcast_addr> <mcast_port> ");
 			System.exit(0);
 		}
 
-		MainSystem sistema = new MainSystem();
+		System.out.println("\t============\n\t===SERVER===\n\t============\n");
 		
+		MainSystem sistema = new MainSystem();
+
 		Thread startUnicast = new Thread(new Runnable() {
 
 			@Override
@@ -26,28 +29,28 @@ public class Server {
 				}
 			}
 		});
-		
+
 		Thread startMulticast = new Thread(new Runnable() {
 
 			@Override
 			public void run() {
 				try {
 					multicast(args, sistema);
-				} catch (InterruptedException e) {
+				} catch (InterruptedException | IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
 		});
-		
+
 		startMulticast.start();
 		startUnicast.start();
 	}
 
-	public static void unicast(String args[], MainSystem sistema) throws IOException {
+	public static void unicast(String args[], MainSystem sistema)
+			throws IOException {
 		int port = Integer.parseInt(args[0]);
 
-		System.out.println("===Server===\n\tPort: " + port + "\n");
 		DatagramSocket socket = new DatagramSocket(port);
 		byte[] buffer = new byte[1024];
 
@@ -73,8 +76,9 @@ public class Server {
 					result = Integer.toString(temp);
 				}
 			} else if (tokens[0].equals("LOOKUP"))
-				result = sistema.lookup(tokens[1]);
+				result = sistema.lookup(tokens[1].toUpperCase());
 
+			System.out.println("\tResult: " + result);
 			// run
 			InetAddress address = packet.getAddress();
 			int port2 = packet.getPort();
@@ -85,11 +89,30 @@ public class Server {
 		}
 		socket.close();
 	}
-	public static void multicast (String args[], MainSystem sistema) throws InterruptedException {
-		while(true) {
-			System.out.println("Ola joana");
+
+	public static void multicast(String args[], MainSystem sistema)
+			throws InterruptedException, IOException {
+
+		int port = Integer.parseInt(args[2]);
+
+		DatagramSocket socket = new DatagramSocket();
+		String message = args[0] + "/ Welcome to the car database system! ";
+		byte[] buffer = message.getBytes();
+
+		boolean stop = true;
+		while (stop) {
+			// sending
+			InetAddress address = InetAddress.getByName(args[1]);
+			DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
+					address, port);
+			
+			System.out.println("multicast: " + args[1] + " " + port + " : "
+					+ InetAddress.getLocalHost() + " " + args[0]);
+
+			socket.send(packet);
+
 			Thread.sleep(1000);
 		}
-		
+		socket.close();
 	}
 }
