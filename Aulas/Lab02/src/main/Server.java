@@ -35,7 +35,7 @@ public class Server {
 			@Override
 			public void run() {
 				try {
-					multicast(args, sistema);
+					multicast(args);
 				} catch (InterruptedException | IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -82,7 +82,6 @@ public class Server {
 			// run
 			InetAddress address = packet.getAddress();
 			int port2 = packet.getPort();
-			System.out.println("port2: " + port2);
 			byte[] msg2 = result.getBytes();
 			packet = new DatagramPacket(msg2, msg2.length, address, port2);
 			socket.send(packet);
@@ -91,7 +90,7 @@ public class Server {
 		socket.close();
 	}
 
-	public static void multicast(String args[], MainSystem sistema)
+	public static void multicast(String args[])
 			throws InterruptedException, IOException {
 
 		int port = Integer.parseInt(args[2]);
