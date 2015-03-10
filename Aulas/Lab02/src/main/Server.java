@@ -10,7 +10,7 @@ public class Server {
 	public static void main(String args[]) throws Exception {
 		if (args.length != 3) {
 			System.out
-					.println("Usage: java Server <srvc_port> <mcast_addr> <mcast_port> ");
+					.println("Usage: java Server <srvc_port> <mcast_addr> <mcast_port>");
 			System.exit(0);
 		}
 
@@ -82,6 +82,7 @@ public class Server {
 			// run
 			InetAddress address = packet.getAddress();
 			int port2 = packet.getPort();
+			System.out.println("port2: " + port2);
 			byte[] msg2 = result.getBytes();
 			packet = new DatagramPacket(msg2, msg2.length, address, port2);
 			socket.send(packet);
