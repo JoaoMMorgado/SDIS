@@ -20,7 +20,6 @@ public class Client {
 		MulticastSocket multisocket = new MulticastSocket(port);
 		InetAddress address = InetAddress.getByName(args[0]);
 		multisocket.joinGroup(address);
-
 		byte[] inBuf = new byte[256];
 		DatagramPacket inPacket = new DatagramPacket(inBuf, inBuf.length);
 		multisocket.receive(inPacket);
