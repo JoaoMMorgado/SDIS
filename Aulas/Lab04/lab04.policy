@@ -1,0 +1,3 @@
+grant codeBase "file:///D:/OneDrive/Documentos/Faculdade/Projetos/SDIS/Aulas/Lab04/bin/main/" {
+    permission java.security.AllPermission;
+};
