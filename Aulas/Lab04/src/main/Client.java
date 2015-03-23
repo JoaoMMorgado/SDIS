@@ -14,7 +14,7 @@ public class Client {
 		}
 
 		String host = args[0];
-		String objectName = args[1];
+		String objectName = args[1]; 
 
 		try {
 			Registry registry = LocateRegistry.getRegistry(host, 1099);
