@@ -1,4 +1,4 @@
-package main;
+package protocols;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -8,27 +8,26 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class Config {
-	
+
 	protected String config[];
 	private String args[];
-	
+
 	public Config(String args[]) {
 		this.args = args;
-		config = new String[3];
-		args = new String[3];
+		config = new String[6];
+		args = new String[6];
 	}
-	
+
 	public void storeConfigurations() throws IOException {
 		FileWriter fileWriter = new FileWriter("configuration.txt");
 
 		BufferedWriter writer = new BufferedWriter(fileWriter);
 
-		writer.write(args[0] + "\n");
-		config[0] = args[0];
-		writer.write(args[1] + "\n");
-		config[1] = args[1];
-		writer.write(args[2]);
-		config[2] = args[2];
+		for (int i = 0; i < 6; i++) {
+			writer.write(args[i] + "\n");
+			config[i] = args[i];
+		}
+
 		writer.close();
 	}
 
@@ -51,6 +50,8 @@ public class Config {
 			while ((line = bufferedReader.readLine()) != null) {
 				config[i] = line;
 				i++;
+				if (i == 6)
+					break;
 			}
 		} catch (IOException e) {
 			return false;
@@ -58,9 +59,9 @@ public class Config {
 
 		bufferedReader.close();
 
-		if (i < 3)
+		if (i < 6)
 			return false;
-			
+
 		return true;
 	}
 }
