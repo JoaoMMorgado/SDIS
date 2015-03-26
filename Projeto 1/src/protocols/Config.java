@@ -9,23 +9,20 @@ import java.io.IOException;
 
 public class Config {
 
-	protected String config[];
-	private String args[];
+	private String config[];
 
-	public Config(String args[]) {
-		this.args = args;
-		config = new String[6];
-		args = new String[6];
+	public Config() {
+		setConfig(new String[6]);
 	}
 
-	public void storeConfigurations() throws IOException {
+	public void storeConfigurations(String args[]) throws IOException {
 		FileWriter fileWriter = new FileWriter("configuration.txt");
 
 		BufferedWriter writer = new BufferedWriter(fileWriter);
 
 		for (int i = 0; i < 6; i++) {
-			writer.write(args[i] + "\n");
 			config[i] = args[i];
+			writer.write(args[i] + "\n");
 		}
 
 		writer.close();
@@ -48,7 +45,7 @@ public class Config {
 
 		try {
 			while ((line = bufferedReader.readLine()) != null) {
-				config[i] = line;
+				getConfig()[i] = line;
 				i++;
 				if (i == 6)
 					break;
@@ -63,5 +60,13 @@ public class Config {
 			return false;
 
 		return true;
+	}
+
+	public String[] getConfig() {
+		return config;
+	}
+
+	public void setConfig(String config[]) {
+		this.config = config;
 	}
 }

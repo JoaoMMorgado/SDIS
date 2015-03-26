@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.MulticastSocket;
 
 class FileChunk {
 
@@ -20,10 +22,12 @@ class FileChunk {
 				new FileInputStream(f))) {
 
 			String name = f.getName();
-
+			long dateModified = f.lastModified();
+			
 			int tmp = 0;
 			while ((tmp = bis.read(buffer)) > 0) {
 				
+				DatagramSocket socket = new DatagramSocket();
 				//em vez de escrever para o ficheiro escrever para a stream do socket
 				File newFile = new File(f.getParent(), name + "."
 						+ String.format("%03d", partCounter++));
@@ -33,7 +37,7 @@ class FileChunk {
 			}
 		}
 	}
-	
+			
 	public static void main(String[] args) throws IOException {
 		splitFile("cenas.txt");
 	}
