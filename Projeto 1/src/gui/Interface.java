@@ -14,15 +14,10 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
-import javax.swing.JTextPane;
-import javax.swing.JFormattedTextField;
-import javax.swing.text.MaskFormatter;
 
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.regex.Matcher;
@@ -31,12 +26,17 @@ import java.util.regex.Pattern;
 import javax.swing.JButton;
 
 import protocols.Config;
+import protocols.Protocols;
+import javax.swing.JTextArea;
 
 public class Interface extends JFrame {
 
 	private Config config;
-	JTextField mcIP, mdbIP, mdrIP;
-	JSpinner mcPort, mdbPort, mdrPort;
+	private JTextField mcIP, mdbIP, mdrIP;
+	private JSpinner mcPort, mdbPort, mdrPort;
+	private Protocols protocols;
+	private String path;
+	private JTextArea logsOut;
 
 	private static final long serialVersionUID = 1L;
 
@@ -72,7 +72,7 @@ public class Interface extends JFrame {
 	 * @throws ParseException
 	 * @throws IOException
 	 */
-	public Interface() throws ParseException, IOException {
+	public Interface() throws IOException {
 
 		getContentPane().setBackground(Color.LIGHT_GRAY);
 		setBackground(Color.LIGHT_GRAY);
@@ -106,7 +106,10 @@ public class Interface extends JFrame {
 			mdrIP.setText(config.getConfig()[4]);
 			mdrPort.setValue(Integer.parseInt(config.getConfig()[5]));
 		}
-
+		
+		//PROTOCOLS
+		protocols = new Protocols(config.getConfig(), logsOut);
+		protocols.start();
 	}
 
 	private void manageFiles() {
@@ -127,6 +130,7 @@ public class Interface extends JFrame {
 		maganeFiles.add(lblReplicationDegree);
 
 		JSpinner replicationDegreeSpinner = new JSpinner();
+		replicationDegreeSpinner.setModel(new SpinnerNumberModel(1, 1, 9, 1));
 		replicationDegreeSpinner.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		replicationDegreeSpinner.setBounds(154, 9, 40, 25);
 		maganeFiles.add(replicationDegreeSpinner);
@@ -137,6 +141,8 @@ public class Interface extends JFrame {
 		maganeFiles.add(lblProtocolVersion);
 
 		JSpinner protocolVersionSpinner = new JSpinner();
+		protocolVersionSpinner.setModel(new SpinnerNumberModel(new Integer(1),
+				new Integer(1), null, new Integer(1)));
 		protocolVersionSpinner.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		protocolVersionSpinner.setBounds(328, 9, 40, 25);
 		maganeFiles.add(protocolVersionSpinner);
@@ -152,10 +158,7 @@ public class Interface extends JFrame {
 				final JFileChooser fileChooser = new JFileChooser();
 				int temp = fileChooser.showOpenDialog(null);
 				if (temp == JFileChooser.APPROVE_OPTION) {
-					String path = fileChooser.getSelectedFile()
-							.getAbsolutePath();
-					System.out.println(path);
-
+					path = fileChooser.getSelectedFile().getAbsolutePath();
 				}
 			}
 		});
@@ -164,25 +167,61 @@ public class Interface extends JFrame {
 		btnBackup.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		btnBackup.setBounds(502, 9, 86, 25);
 		maganeFiles.add(btnBackup);
+		btnBackup.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (path == "" || path == null)
+					JOptionPane.showMessageDialog(null,
+							"No file choosed!");
+				else
+					try {
+						protocols.backup(path);
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+			}
+		});
 
 		JButton btnRestore = new JButton("Restore");
 		btnRestore.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		btnRestore.setBounds(502, 41, 86, 25);
 		maganeFiles.add(btnRestore);
+		btnRestore.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				protocols.restore();
+			}
+		});
 
 		JButton btnDelete = new JButton("Delete");
 		btnDelete.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		btnDelete.setBounds(502, 74, 86, 25);
 		maganeFiles.add(btnDelete);
+		btnDelete.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				protocols.delete();
+			}
+		});
 
 		JButton btnClaimSpace = new JButton("Claim");
 		btnClaimSpace.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		btnClaimSpace.setBounds(502, 107, 86, 25);
 		maganeFiles.add(btnClaimSpace);
+		btnClaimSpace.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				protocols.claimSpace();
+			}
+		});
 
 	}
 
-	private void configurations() throws ParseException {
+	private void configurations() {
 		JLabel configLabel = new JLabel("Configura\u00E7\u00F5es");
 		configLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		configLabel.setFont(new Font("Tahoma", Font.PLAIN, 20));
@@ -212,10 +251,6 @@ public class Interface extends JFrame {
 		lblMulticastRestoreChannel.setBounds(12, 68, 205, 34);
 		lblMulticastRestoreChannel.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		IPdefinitions.add(lblMulticastRestoreChannel);
-
-		MaskFormatter ip = new MaskFormatter("###.###.###.###");
-		String expr = "^(([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.){3}([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
-		Pattern pattern = Pattern.compile(expr);
 
 		mcIP = new JTextField();
 		mcIP.setFont(new Font("Tahoma", Font.PLAIN, 15));
@@ -271,27 +306,35 @@ public class Interface extends JFrame {
 		btnSave.addActionListener(new ActionListener() {
 
 			String args[] = new String[6];
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
-					args[0]= mcIP.getText();
-					args[1]= Integer.toString((int) mcPort.getValue());
-					args[2]= mdbIP.getText();
-					args[3]= Integer.toString((int) mdbPort.getValue());
-					args[4]= mdrIP.getText();
-					args[5]= Integer.toString((int) mdrPort.getValue());
-					
-					config.storeConfigurations(args);
+					args[0] = mcIP.getText();
+					args[1] = Integer.toString((int) mcPort.getValue());
+					args[2] = mdbIP.getText();
+					args[3] = Integer.toString((int) mdbPort.getValue());
+					args[4] = mdrIP.getText();
+					args[5] = Integer.toString((int) mdrPort.getValue());
+
+					String expr = "^(([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.){3}([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
+					Pattern pattern = Pattern.compile(expr);
+
+					Matcher matcher1 = pattern.matcher(args[0]);
+					Matcher matcher2 = pattern.matcher(args[0]);
+					Matcher matcher3 = pattern.matcher(args[0]);
+
+					if (matcher1.matches() && matcher2.matches()
+							&& matcher3.matches())
+						config.storeConfigurations(args);
+					else
+						JOptionPane.showMessageDialog(null, "Invalid IPs!");
+
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
 			}
 		});
-
-		// on submit dos ips
-		// Matcher matcher = pattern.matcher(ip da caixa de texto);
-		// return matcher.matches();
 	}
 
 	private void logsText() {
@@ -300,10 +343,11 @@ public class Interface extends JFrame {
 		lblLogs.setFont(new Font("Tahoma", Font.PLAIN, 20));
 		lblLogs.setBounds(0, 351, 600, 30);
 		getContentPane().add(lblLogs);
-
-		JTextPane logsOut = new JTextPane();
+		
+		logsOut = new JTextArea();
+		logsOut.setEditable(false);
+		logsOut.setFont(new Font("Monospaced", Font.PLAIN, 10));
 		logsOut.setBounds(0, 381, 600, 132);
 		getContentPane().add(logsOut);
-
 	}
 }
