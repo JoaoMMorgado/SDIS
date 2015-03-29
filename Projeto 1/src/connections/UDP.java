@@ -35,13 +35,13 @@ public class UDP {
 		socket.send(packet);
 	}
 
-//	public void sendMessage(byte[] buffer) throws IOException {
-//		InetAddress address = InetAddress.getByName(config[type]);
-//		DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
-//				address, Integer.parseInt(config[type + 1]));
-//
-//		socket.send(packet);
-//	}
+	public void sendMessage(byte[] buffer) throws IOException {
+		InetAddress address = InetAddress.getByName(config[type]);
+		DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
+				address, Integer.parseInt(config[type + 1]));
+
+		socket.send(packet);
+	}
 
 	public void close() {
 		socket.close();

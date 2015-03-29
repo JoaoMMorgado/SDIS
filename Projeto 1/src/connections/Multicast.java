@@ -25,12 +25,20 @@ public class Multicast {
 	}
 
 	public String getMessage() throws IOException {
-		int size = 64 * 1000;
+		int size = 64 * 1000; //este valor deve ser o maximo do udp. porque 64000 é o tamanho dos dados. sem header
 		byte[] buffer = new byte[size];
 		DatagramPacket inPacket = new DatagramPacket(buffer, buffer.length);
 		socket.receive(inPacket);
 		String message = new String(buffer, 0, inPacket.getLength());
 		return message;
+	}
+	
+	public byte[] getByteMessage() throws IOException {
+		int size = 64 * 1000;
+		byte[] buffer = new byte[size];
+		DatagramPacket inPacket = new DatagramPacket(buffer, buffer.length);
+		socket.receive(inPacket);
+		return inPacket.getData();
 	}
 
 	public MulticastSocket getSocket() {

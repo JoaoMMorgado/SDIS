@@ -5,7 +5,6 @@ import java.io.IOException;
 import javax.swing.JTextArea;
 
 import connections.Multicast;
-import connections.UDP;
 
 public class Protocols {
 
@@ -68,8 +67,8 @@ public class Protocols {
 		FileRestore.start();
 	}
 
-	public void backup(String path) throws IOException {
-		chunkBackup.backup(path);
+	public void backup(String path, int replicationDegree, int protocolVersion) throws IOException {
+		chunkBackup.backup(path, replicationDegree, protocolVersion);
 	}
 
 	public void restore(String file) throws IOException {

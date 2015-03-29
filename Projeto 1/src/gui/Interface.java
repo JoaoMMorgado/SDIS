@@ -150,7 +150,6 @@ public class Interface extends JFrame {
 				int temp = fileChooser.showOpenDialog(null);
 				if (temp == JFileChooser.APPROVE_OPTION) {
 					path = fileChooser.getSelectedFile().getAbsolutePath();
-					System.out.println("path: " + path);
 				}
 			}
 		});
@@ -167,7 +166,7 @@ public class Interface extends JFrame {
 					JOptionPane.showMessageDialog(null, "No file choosed!");
 				else
 					try {
-						protocols.backup(path);
+						protocols.backup(path, (int) replicationDegreeSpinner.getValue(), (int) protocolVersionSpinner.getValue());
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
