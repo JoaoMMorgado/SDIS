@@ -1,7 +1,6 @@
 package protocols;
 
 import java.io.IOException;
-import java.net.Socket;
 
 import javax.swing.JTextArea;
 
@@ -41,7 +40,6 @@ public class Protocols {
 	public void backup(String path) throws IOException {
 		UDP udp = new UDP(config, 0);
 		udp.sendMessage(path);
-		udp.close();
 	}
 
 	public void restore() {
