@@ -25,7 +25,7 @@ public class UDP {
 	}
 
 	public void sendMessage(String message) throws IOException {
-		System.out.println(message);
+
 		byte[] buffer = message.getBytes();
 
 		InetAddress address = InetAddress.getByName(config[type]);
@@ -34,9 +34,24 @@ public class UDP {
 
 		socket.send(packet);
 	}
-	
+
+//	public void sendMessage(byte[] buffer) throws IOException {
+//		InetAddress address = InetAddress.getByName(config[type]);
+//		DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
+//				address, Integer.parseInt(config[type + 1]));
+//
+//		socket.send(packet);
+//	}
+
 	public void close() {
 		socket.close();
 	}
 
+	public DatagramSocket getSocket() {
+		return socket;
+	}
+
+	public void setSocket(DatagramSocket socket) {
+		this.socket = socket;
+	}
 }

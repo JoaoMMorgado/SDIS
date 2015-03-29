@@ -6,7 +6,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 
 /**
- * classe para receber cenas
+ * 
  * 
  * @author Paulo
  *
@@ -21,6 +21,7 @@ public class Multicast {
 		socket = new MulticastSocket(Integer.parseInt(config[type + 1]));
 		InetAddress address = InetAddress.getByName(config[type]);
 		socket.joinGroup(address);
+		socket.setLoopbackMode(true); //com isto o proprio pc nao recebe as mensagens que envia para o grupo de multicast
 	}
 
 	public String getMessage() throws IOException {
@@ -29,7 +30,6 @@ public class Multicast {
 		DatagramPacket inPacket = new DatagramPacket(buffer, buffer.length);
 		socket.receive(inPacket);
 		String message = new String(buffer, 0, inPacket.getLength());
-
 		return message;
 	}
 

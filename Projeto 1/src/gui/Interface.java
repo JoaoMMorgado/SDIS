@@ -57,15 +57,6 @@ public class Interface extends JFrame {
 		});
 	}
 
-	// quando a thread começa tem que estar pronto para enviar
-	// pedidos e para receber pedidos logo terá que se juntar a um
-	// servidor de multicast para ficar a espera de pedidos, sempre
-	// que se pretende criar um backup é criado é criado um
-	// datagramsocket para o efeito que depois é fechado!
-
-	// duvida? criar apenas 1 receiver que recebe todos os pedidos e os
-	// interpreta ou separar logo por threads??
-
 	/**
 	 * Create the frame.
 	 * 
@@ -106,8 +97,8 @@ public class Interface extends JFrame {
 			mdrIP.setText(config.getConfig()[4]);
 			mdrPort.setValue(Integer.parseInt(config.getConfig()[5]));
 		}
-		
-		//PROTOCOLS
+
+		// PROTOCOLS
 		protocols = new Protocols(config.getConfig(), logsOut);
 		protocols.start();
 	}
@@ -159,6 +150,7 @@ public class Interface extends JFrame {
 				int temp = fileChooser.showOpenDialog(null);
 				if (temp == JFileChooser.APPROVE_OPTION) {
 					path = fileChooser.getSelectedFile().getAbsolutePath();
+					System.out.println("path: " + path);
 				}
 			}
 		});
@@ -172,8 +164,7 @@ public class Interface extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (path == "" || path == null)
-					JOptionPane.showMessageDialog(null,
-							"No file choosed!");
+					JOptionPane.showMessageDialog(null, "No file choosed!");
 				else
 					try {
 						protocols.backup(path);
@@ -191,7 +182,14 @@ public class Interface extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				protocols.restore();
+				if (path == "" || path == null)
+					JOptionPane.showMessageDialog(null, "No file choosed!");
+				else
+					try {
+						protocols.restore(path);
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
 			}
 		});
 
@@ -343,7 +341,7 @@ public class Interface extends JFrame {
 		lblLogs.setFont(new Font("Tahoma", Font.PLAIN, 20));
 		lblLogs.setBounds(0, 351, 600, 30);
 		getContentPane().add(lblLogs);
-		
+
 		logsOut = new JTextArea();
 		logsOut.setEditable(false);
 		logsOut.setFont(new Font("Monospaced", Font.PLAIN, 10));
