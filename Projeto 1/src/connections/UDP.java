@@ -25,7 +25,6 @@ public class UDP {
 	}
 
 	public void sendMessage(String message) throws IOException {
-		System.out.println(message);
 		byte[] buffer = message.getBytes();
 
 		InetAddress address = InetAddress.getByName(config[type]);

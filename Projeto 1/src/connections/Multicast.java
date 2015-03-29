@@ -19,6 +19,7 @@ public class Multicast {
 	public Multicast(String config[], int type) throws NumberFormatException, IOException {
 		this.config = config;
 		socket = new MulticastSocket(Integer.parseInt(config[type + 1]));
+		socket.setLoopbackMode(true);
 		InetAddress address = InetAddress.getByName(config[type]);
 		socket.joinGroup(address);
 	}
