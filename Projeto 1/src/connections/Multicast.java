@@ -21,11 +21,11 @@ public class Multicast {
 		socket = new MulticastSocket(Integer.parseInt(config[type + 1]));
 		InetAddress address = InetAddress.getByName(config[type]);
 		socket.joinGroup(address);
-		socket.setLoopbackMode(true); //com isto o proprio pc nao recebe as mensagens que envia para o grupo de multicast
+//		socket.setLoopbackMode(true); //com isto o proprio pc nao recebe as mensagens que envia para o grupo de multicast
 	}
 
 	public String getMessage() throws IOException {
-		int size = 64 * 1000; //este valor deve ser o maximo do udp. porque 64000 é o tamanho dos dados. sem header
+		int size = 64 * 1024; //este valor deve ser o maximo do udp. porque 64000 é o tamanho dos dados. sem header
 		byte[] buffer = new byte[size];
 		DatagramPacket inPacket = new DatagramPacket(buffer, buffer.length);
 		socket.receive(inPacket);
@@ -34,7 +34,7 @@ public class Multicast {
 	}
 	
 	public byte[] getByteMessage() throws IOException {
-		int size = 64 * 1000;
+		int size = 64 * 1024;
 		byte[] buffer = new byte[size];
 		DatagramPacket inPacket = new DatagramPacket(buffer, buffer.length);
 		socket.receive(inPacket);

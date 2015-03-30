@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.MessageDigest;
@@ -42,22 +43,32 @@ public class ChunkBackup {
 			InterruptedException {
 
 		Random rand = new Random();
-		
+
 		while (true) {
 			try {
 				byte[] message = MDB.getByteMessage();
-
+				System.out.println(message.length);
 				// separar todos os campos da mensagem e criar o novo ficheiro
 				// com isso
-				
-				BufferedReader input = new BufferedReader(new InputStreamReader(
-						new ByteArrayInputStream(message)));
+
+				BufferedReader input = new BufferedReader(
+						new InputStreamReader(new ByteArrayInputStream(message)));
 				String header = input.readLine();
+
+				System.out.println(header.length());
+
 				logsOut.append(header + "\n");
-				//fazer parse do header
-				
-				//ir buscar o resto dos dados e meter para um ficheiro (y) yey
-				
+				// fazer parse do header
+				String tokens[] = header.split(" ");
+				byte[] data = new byte[message.length - header.length() + 2];
+				for (int i = header.length() + 2, j = 0; i < message.length; i++, j++)
+					data[j] = message[i];
+
+				File newFile = new File("ficheiro.part" + tokens[3]);
+				FileOutputStream output = new FileOutputStream(newFile);
+				output.write(data);
+				output.flush();
+				output.close();
 				
 				Thread.sleep(rand.nextInt(401));
 
@@ -100,7 +111,10 @@ public class ChunkBackup {
 		String replicationDegree = Integer.toString(repDegree);
 
 		return msgType + " " + version + ".0" + " " + fileID + " "
-				+ chunkNumber + " " + replicationDegree + " " + "\r\n";/*0xD 0xA;*/
+				+ chunkNumber + " " + replicationDegree + " " + "\r\n";/*
+																		 * 0xD
+																		 * 0xA;
+																		 */
 	}
 
 	/**
@@ -136,13 +150,14 @@ public class ChunkBackup {
 				chunkData = new byte[(int) ((int) fileSize - totalSizeRead)];
 			else
 				chunkData = new byte[64000];
-			
+
 			System.out.println(chunkData.length);
 
 			int sizeRead = inputStream.read(chunkData, 0, chunkData.length);
 
 			byte[] headerByte = header.getBytes();
 			byte[] message = merge(headerByte, chunkData);
+			System.out.println(message.length);
 			udp.sendMessage(message);
 
 			// recebe confirmação -> se ok, continuar, senao duplicar tempo
