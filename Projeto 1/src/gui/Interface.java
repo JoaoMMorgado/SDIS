@@ -27,6 +27,7 @@ import javax.swing.JButton;
 
 import protocols.Config;
 import protocols.Protocols;
+
 import javax.swing.JTextArea;
 
 public class Interface extends JFrame {
@@ -82,11 +83,13 @@ public class Interface extends JFrame {
 		// LOGS TEXT
 		logsText();
 
+		// TODO bug aqui se nao tiver ficheiro com dados para comecar
 		// CONFIGURATIONS LOAD
-		config = new Config();
+		Config config = new Config();
 		if (!config.readConfigurations()) {
-			JOptionPane.showMessageDialog(null,
-					"Input configurations and save it!");
+			JOptionPane
+					.showMessageDialog(null,
+							"Input your configurations and save it! Default may not work");
 		} else {
 			mcIP.setText(config.getConfig()[0]);
 			mcPort.setValue(Integer.parseInt(config.getConfig()[1]));
@@ -98,6 +101,7 @@ public class Interface extends JFrame {
 			mdrPort.setValue(Integer.parseInt(config.getConfig()[5]));
 		}
 
+		// TODO come�ar isto se pressionar um botao
 		// PROTOCOLS
 		protocols = new Protocols(config.getConfig(), logsOut);
 		protocols.start();
@@ -166,8 +170,10 @@ public class Interface extends JFrame {
 					JOptionPane.showMessageDialog(null, "No file choosed!");
 				else
 					try {
-						protocols.backup(path, (int) replicationDegreeSpinner.getValue(), (int) protocolVersionSpinner.getValue());
-					} catch (IOException e1) {
+						protocols.backup(path,
+								(int) replicationDegreeSpinner.getValue(),
+								(int) protocolVersionSpinner.getValue());
+					} catch (IOException | InterruptedException e1) {
 						e1.printStackTrace();
 					}
 			}
@@ -185,7 +191,8 @@ public class Interface extends JFrame {
 					JOptionPane.showMessageDialog(null, "No file choosed!");
 				else
 					try {
-						protocols.restore(path);
+						protocols.restore(path,
+								(int) protocolVersionSpinner.getValue());
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}

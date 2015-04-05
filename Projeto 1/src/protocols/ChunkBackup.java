@@ -8,14 +8,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Random;
 
 import javax.swing.JTextArea;
 
-import connections.Multicast;
-import connections.UDP;
+import connections.*;
 
 public class ChunkBackup {
 
@@ -33,7 +31,7 @@ public class ChunkBackup {
 	}
 
 	/**
-	 * Waits for incoming requests
+	 * Waits for incoming requests and stores the backup if not exists
 	 * 
 	 * @throws NumberFormatException
 	 * @throws IOException
@@ -42,38 +40,49 @@ public class ChunkBackup {
 	public void start() throws NumberFormatException, IOException,
 			InterruptedException {
 
+		// falta processar todos os stored enviados pelos outros peers
+
 		Random rand = new Random();
 
 		while (true) {
 			try {
 				byte[] message = MDB.getByteMessage();
-				System.out.println(message.length);
-				// separar todos os campos da mensagem e criar o novo ficheiro
-				// com isso
 
 				BufferedReader input = new BufferedReader(
 						new InputStreamReader(new ByteArrayInputStream(message)));
 				String header = input.readLine();
 
-				System.out.println(header.length());
-
 				logsOut.append(header + "\n");
-				// fazer parse do header
 				String tokens[] = header.split(" ");
-				byte[] data = new byte[message.length - header.length() + 2];
-				for (int i = header.length() + 2, j = 0; i < message.length; i++, j++)
-					data[j] = message[i];
 
-				File newFile = new File("ficheiro.part" + tokens[3]);
-				FileOutputStream output = new FileOutputStream(newFile);
-				output.write(data);
-				output.flush();
-				output.close();
-				
+				if (!tokens[0].equals("PUTCHUNK"))
+					return;
+
+				byte[] dataTemp = new byte[message.length - header.length() + 2];
+				for (int i = header.length() + 2, j = 0; i < message.length; i++, j++)
+					dataTemp[j] = message[i];
+
+				byte data[] = trim(dataTemp);
+
+				File newFile = new File(tokens[2] + "\\" + "file" + ".part"
+						+ tokens[3]);
+
+				if (!newFile.exists() && !newFile.isDirectory()) {
+
+					newFile.getParentFile().mkdirs();
+					newFile.createNewFile();
+
+					FileOutputStream output = new FileOutputStream(newFile);
+					output.write(data);
+					output.flush();
+					output.close();
+				}
+
 				Thread.sleep(rand.nextInt(401));
 
 				UDP udp = new UDP(config, 0);
-				udp.sendMessage("confirmation from MDB to MC");
+				String response = msgStored(tokens[2], tokens[1], tokens[3]);
+				udp.sendMessage(response);
 				udp.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -81,25 +90,13 @@ public class ChunkBackup {
 		}
 	}
 
-	public String fileID(File file) {
-
-		MessageDigest hash = null;
-		try {
-			hash = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+	private byte[] trim(byte[] bytes) {
+		int i = bytes.length - 1;
+		while (i >= 0 && bytes[i] == 0) {
+			--i;
 		}
-		String fileName = file.getName();
-		long lastModified = file.lastModified();
-		String tmp = fileName + " " + Integer.toString((int) lastModified)
-				+ " " + file.length();
 
-		hash.update(tmp.getBytes());
-
-		byte[] hashed = hash.digest();
-
-		return hashed.toString();
-
+		return Arrays.copyOf(bytes, i + 1);
 	}
 
 	public String msgHeader(String fileID, int repDegree, int protocolVersion,
@@ -111,24 +108,32 @@ public class ChunkBackup {
 		String replicationDegree = Integer.toString(repDegree);
 
 		return msgType + " " + version + ".0" + " " + fileID + " "
-				+ chunkNumber + " " + replicationDegree + " " + "\r\n";/*
-																		 * 0xD
-																		 * 0xA;
-																		 */
+				+ chunkNumber + " " + replicationDegree + " " + "\r\n";
+	}
+
+	public String msgStored(String fileID, String protocolVersion,
+			String chunkNo) {
+		String msgType = "STORED";
+
+		return msgType + " " + protocolVersion + " " + fileID + " " + chunkNo
+				+ " " + "\r\n" + "\r\n";
 	}
 
 	/**
 	 * Makes a request to backup
 	 * 
 	 * @param path
+	 * @param protocolVersion
+	 * @param repDegree
 	 * @throws IOException
+	 * @throws InterruptedException
 	 */
 	public void backup(String path, int repDegree, int protocolVersion)
-			throws IOException {
+			throws IOException, InterruptedException {
 		// dividir ficheiro e enviar chunks para o MDB
 
 		File file = new File(path);
-		String fileID = fileID(file);
+		String fileID = Protocols.fileID(file);
 		long fileSize = file.length();
 
 		long totalSizeRead = 0;
@@ -141,8 +146,9 @@ public class ChunkBackup {
 		byte[] chunkData;
 
 		boolean stop = false;
+		long waitTime = 500;
+
 		do {
-			// enviar pedido putchunk
 			String header = msgHeader(fileID, repDegree, protocolVersion,
 					chunkNum);
 
@@ -151,25 +157,49 @@ public class ChunkBackup {
 			else
 				chunkData = new byte[64000];
 
-			System.out.println(chunkData.length);
-
 			int sizeRead = inputStream.read(chunkData, 0, chunkData.length);
 
 			byte[] headerByte = header.getBytes();
 			byte[] message = merge(headerByte, chunkData);
-			System.out.println(message.length);
-			udp.sendMessage(message);
 
-			// recebe confirmação -> se ok, continuar, senao duplicar tempo
-			// merdas do genero
-			String confirmation = MC.getMessage();
-			logsOut.append(confirmation + "\n");
+//			udp.sendMessage(message);
+//			String confirmation = MC.getMessage();
+//			logsOut.append(confirmation + "\n");
+
+			int currentRepDegree = 0;
+			while (!stop && waitTime <= 31.5 * 1000) {
+				udp.sendMessage(message);
+				stop = waitForStoredMessages(waitTime, fileID, repDegree,
+						currentRepDegree);
+				waitTime *= 2;
+			}
 			chunkNum++;
 			totalSizeRead += sizeRead;
 
 		} while (fileSize > totalSizeRead);
 
+		inputStream.close();
 		udp.close();
+	}
+
+	private boolean waitForStoredMessages(long waitTime, String fileID,
+			int repDegree, int currentRepDegree) throws IOException {
+
+		long end = System.currentTimeMillis() + waitTime;
+
+		while (System.currentTimeMillis() <= end
+				&& currentRepDegree < repDegree) {
+			String confirmation = MC.getMessage();
+
+			String[] tokens = confirmation.split(" ");
+
+			if (tokens[0].equals("STORED") && tokens[2].equals(fileID))
+				currentRepDegree++;
+			logsOut.append(confirmation + "\n");
+
+		}
+		System.out.println("cenas3");
+		return currentRepDegree >= repDegree;
 	}
 
 	private byte[] merge(byte[] array1, byte[] array2) {

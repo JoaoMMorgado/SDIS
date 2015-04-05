@@ -1,6 +1,9 @@
 package protocols;
 
+import java.io.File;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import javax.swing.JTextArea;
 
@@ -66,13 +69,35 @@ public class Protocols {
 		});
 		FileRestore.start();
 	}
+	
+	public static String fileID(File file) {
 
-	public void backup(String path, int replicationDegree, int protocolVersion) throws IOException {
+		MessageDigest hash = null;
+		try {
+			hash = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		
+		String fileName = file.getName();
+		long lastModified = file.lastModified();
+		String tmp = fileName + " " + Integer.toString((int) lastModified)
+				+ " " + file.length();
+
+		hash.update(tmp.getBytes());
+
+		byte[] hashed = hash.digest();
+
+		return hashed.toString();
+
+	}
+
+	public void backup(String path, int replicationDegree, int protocolVersion) throws IOException, InterruptedException {
 		chunkBackup.backup(path, replicationDegree, protocolVersion);
 	}
 
-	public void restore(String file) throws IOException {
-		fileRestore.restore(file);
+	public void restore(String file, int protocolVersion) throws IOException {
+		fileRestore.restore(file, protocolVersion);
 	}
 
 	public void delete() {

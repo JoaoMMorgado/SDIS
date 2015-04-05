@@ -1,5 +1,6 @@
 package protocols;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
@@ -15,7 +16,8 @@ public class FileRestore {
 	private Multicast MC;
 	private Multicast MDR;
 
-	public FileRestore(Multicast MC, String config[], JTextArea logsOut) throws NumberFormatException, IOException {
+	public FileRestore(Multicast MC, String config[], JTextArea logsOut)
+			throws NumberFormatException, IOException {
 		this.config = config;
 		this.logsOut = logsOut;
 		this.MC = MC;
@@ -44,21 +46,53 @@ public class FileRestore {
 		}
 	}
 
+	public String msgHeader(String fileID, int protocolVersion, int chunkNo) {
+		String msgType = "GETCHUNK";
+		String version = Integer.toString(protocolVersion);
+
+		String chunkNumber = Integer.toString(chunkNo);
+
+		return msgType + " " + version + ".0" + " " + fileID + " "
+				+ chunkNumber + " " + "\r\n";
+	}
+
+	public String msgChunk(String fileID, String protocolVersion, String chunkNo) {
+		String msgType = "CHUNK";
+
+		return msgType + " " + protocolVersion + " " + fileID + " " + chunkNo
+				+ " " + "\r\n" + "\r\n";
+	}
+
 	/**
 	 * Makes a request to backup
 	 * 
 	 * @param path
+	 * @param protocolVersion
 	 * @throws IOException
 	 */
-	public void restore(String path) throws IOException {
+	public void restore(String path, int protocolVersion) throws IOException {
+
+		File file = new File(path);
+		String fileID = Protocols.fileID(file);
+		long fileSize = file.length();
+
+		//ir buscar a "database" o numero de chunks de file
+		int chunkNum = 1000; // mudar para numero de chunks a mandar para que o
+								// ficheiro esteja completo
+
 		// enviar chunks para o MDR e juntar ficheiro
 		UDP udp = new UDP(config, 4);
-		udp.sendMessage(path);
-		udp.close();
 
-		// depois de enviado � preciso verficar se foi recebida a mensagem...
-		 String message = MC.getMessage();
-		 logsOut.append("MC received: " + message + "\n");
+		do {
+			String header = msgHeader(fileID, protocolVersion, chunkNum);
+
+			byte[] message = header.getBytes();
+			System.out.println(message.length);
+			udp.sendMessage(message);
+		} while (chunkNum > 0);
+
+		// depois de enviado e' preciso verficar se foi recebida a mensagem...
+		String message = MC.getMessage();
+		logsOut.append("MC received: " + message + "\n");
 	}
-
 }
