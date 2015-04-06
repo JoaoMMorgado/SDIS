@@ -4,14 +4,14 @@
 package protocols;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 
+import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 
-import connections.Multicast;
 import connections.UDP;
+import fileManager.SavedFile;
 
 /**
  * @author joanabeleza
@@ -21,34 +21,30 @@ public class FileDelete {
 
 	private String config[];
 	private JTextArea logsOut;
-	private Multicast MC;
+	private JComboBox<String> backupList;
 
 	/**
-	 * 
+	 * @param backupList
 	 */
-	public FileDelete(Multicast MC, String config[], JTextArea logsOut)
-			throws NumberFormatException, IOException {
+	public FileDelete(String config[], JTextArea logsOut,
+			JComboBox<String> backupList) {
 		this.config = config;
 		this.logsOut = logsOut;
-		this.MC = MC;
+		this.backupList = backupList;
 	}
 
-	public void start() throws NumberFormatException, IOException,
-			InterruptedException {
+	public void startDelete(String[] tokens) {
+		String fileID = tokens[2];
 
-		while (true) {
-			try {
-				UDP udp = new UDP(config, 0);
-				udp.sendMessage("confirmation from MDR to MC");
-				udp.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		boolean noMoreChunks = Protocols.getFileManager().deleteAllChunks(
+				fileID);
+		
+		if(noMoreChunks) 
+			JOptionPane.showMessageDialog(null, "File deleted!");
+			
 	}
 
-	public String msgHeader(String fileID, int repDegree, int protocolVersion,
-			int chunkNo) {
+	public String msgDelete(String fileID, int protocolVersion) {
 		String msgType = "DELETE";
 		String version = Integer.toString(protocolVersion);
 
@@ -56,33 +52,30 @@ public class FileDelete {
 	}
 
 	/**
-	 * Makes a request to backup
+	 * Makes a request to delete
 	 * 
 	 * @param path
-	 * @param protocolVersion 
+	 * @param protocolVersion
 	 * @throws IOException
+	 * @throws InterruptedException 
 	 */
-	public void delete(String path, int protocolVersion) throws IOException {
-		// enviar chunks para o MDR e juntar ficheiro
-		UDP udp = new UDP(config, 4);
-		udp.sendMessage(path);
+	public void delete(int selectedIndex, int protocolVersion)
+			throws IOException, InterruptedException {
+		UDP udp = new UDP(config, 0);
+		SavedFile savedFile = Protocols.getFileManager().getSavedFileAtIndex(
+				selectedIndex);
+		String message = msgDelete(savedFile.getFileID(), protocolVersion);
+		logsOut.append(message + "\n");
+		int i = 0;
+		while(i < 5) {
+			udp.sendMessage(message.getBytes(StandardCharsets.ISO_8859_1));
+			Thread.sleep(100);
+			i++;
+		}
 		udp.close();
 		
-		//nº do chunk a ser apagado
-		int chunkNum = 0; 
-		int chunkMax = 1000; //nº maximo de chunks da file guardados
-
-		do {
-			String pathChunk = path + Integer.toString(chunkNum);
-			Path pathDelete = Paths.get(pathChunk);
-			Files.deleteIfExists(pathDelete);
-			
-			chunkNum++;
-			
-		} while(chunkNum < chunkMax);
-		// depois de enviado e' preciso verficar se foi recebida a mensagem...
-		 String message = MC.getMessage();
-		 logsOut.append("MC received: " + message + "\n");
+		backupList.removeItemAt(selectedIndex);
+		backupList.revalidate();
 	}
 
 }

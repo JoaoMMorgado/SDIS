@@ -13,15 +13,24 @@ public class Config {
 
 	public Config() {
 		setConfig(new String[6]);
+		
+		//default config
+		config[0] = "224.0.0.2";
+		config[1] = "4445";
+		config[2] = "224.0.0.3";
+		config[3] = "4446";
+		config[4] = "224.0.0.4";
+		config[5] = "4447";
 	}
 
 	public void storeConfigurations(String args[]) throws IOException {
+		
 		FileWriter fileWriter = new FileWriter("configuration.txt");
 
 		BufferedWriter writer = new BufferedWriter(fileWriter);
 
 		for (int i = 0; i < 6; i++) {
-			config[i] = args[i];
+//			config[i] = args[i];
 			writer.write(args[i] + "\n");
 		}
 

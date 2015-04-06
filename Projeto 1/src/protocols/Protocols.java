@@ -16,6 +16,7 @@ public class Protocols {
 
 	private ChunkBackup chunkBackup;
 	private FileRestore fileRestore;
+	private FileDelete fileDelete;
 	private Multicast MC;
 	private JTextArea logsOut;
 
@@ -30,6 +31,7 @@ public class Protocols {
 		MC = new Multicast(config, 0);
 		chunkBackup = new ChunkBackup(config, logsOut, backupList);
 		fileRestore = new FileRestore(config, logsOut);
+		fileDelete = new FileDelete(config, logsOut, backupList);
 	}
 
 	/**
@@ -81,7 +83,7 @@ public class Protocols {
 		String tokens[] = message.split(" ");
 
 		if (tokens[0].equals("STORED")) {
-			//adicionar as mensagens para um vetor dentro do backup ou parecido
+			// adicionar as mensagens para um vetor dentro do backup ou parecido
 		} else if (tokens[0].equals("GETCHUNK")) {
 			Thread restore = new Thread(new Runnable() {
 
@@ -96,6 +98,15 @@ public class Protocols {
 				}
 			});
 			restore.start();
+		} else if (tokens[0].equals("DELETE")) {
+			Thread delete = new Thread(new Runnable() {
+
+				@Override
+				public void run() {
+					fileDelete.startDelete(tokens);
+				}
+			});
+			delete.start();
 		}
 	}
 
@@ -143,13 +154,13 @@ public class Protocols {
 		chunkBackup.backup(path, replicationDegree, protocolVersion);
 	}
 
-	public void restore(int selectedIndex, int protocolVersion) throws IOException {
+	public void restore(int selectedIndex, int protocolVersion)
+			throws IOException {
 		fileRestore.restore(selectedIndex, protocolVersion);
 	}
 
-	public void delete() {
-		// TODO Auto-generated method stub
-
+	public void delete(int index, int version) throws IOException, InterruptedException {
+		fileDelete.delete(index, version);
 	}
 
 	public void claimSpace() {

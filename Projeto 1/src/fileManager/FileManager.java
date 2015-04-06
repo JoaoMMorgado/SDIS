@@ -30,9 +30,21 @@ public class FileManager {
 
 		return false;
 	}
-	
+
 	public SavedFile getSavedFileAtIndex(int index) {
 		return savedFiles.get(index);
+	}
+
+	public boolean deleteAllChunks(String fileID) {
+
+		for (int i = 0; i < chunks.size(); i++) {
+			if (chunks.get(i).getFileID().equals(fileID)) {
+				chunks.remove(i);
+				i--;
+			}
+		}
+
+		return true;
 	}
 
 }

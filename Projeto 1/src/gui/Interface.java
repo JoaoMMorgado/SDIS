@@ -93,6 +93,14 @@ public class Interface extends JFrame {
 			JOptionPane
 					.showMessageDialog(null,
 							"Input your configurations and save it! Default may not work");
+			mcIP.setText(config.getConfig()[0]);
+			mcPort.setValue(Integer.parseInt(config.getConfig()[1]));
+
+			mdbIP.setText(config.getConfig()[2]);
+			mdbPort.setValue(Integer.parseInt(config.getConfig()[3]));
+
+			mdrIP.setText(config.getConfig()[4]);
+			mdrPort.setValue(Integer.parseInt(config.getConfig()[5]));
 		} else {
 			mcIP.setText(config.getConfig()[0]);
 			mcPort.setValue(Integer.parseInt(config.getConfig()[1]));
@@ -163,7 +171,7 @@ public class Interface extends JFrame {
 
 		JButton btnBackup = new JButton("Backup");
 		btnBackup.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		btnBackup.setBounds(502, 9, 86, 25);
+		btnBackup.setBounds(502, 8, 86, 25);
 		maganeFiles.add(btnBackup);
 		btnBackup.addActionListener(new ActionListener() {
 
@@ -210,7 +218,12 @@ public class Interface extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				protocols.delete();
+				try {
+					protocols.delete(backupList.getSelectedIndex(),
+							(int) protocolVersionSpinner.getValue());
+				} catch (IOException | InterruptedException e1) {
+					e1.printStackTrace();
+				}
 			}
 		});
 
@@ -228,7 +241,7 @@ public class Interface extends JFrame {
 
 		backupList = new JComboBox<String>();
 		backupList.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		backupList.setBounds(12, 41, 478, 25);
+		backupList.setBounds(12, 57, 478, 25);
 		maganeFiles.add(backupList);
 	}
 
@@ -314,15 +327,16 @@ public class Interface extends JFrame {
 		JButton btnSave = new JButton("Save");
 		btnSave.setBounds(488, 110, 100, 25);
 		IPdefinitions.add(btnSave);
-		
+
 		JLabel lblAvailableSpace = new JLabel("Available Space");
 		lblAvailableSpace.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		lblAvailableSpace.setBounds(12, 110, 100, 25);
 		IPdefinitions.add(lblAvailableSpace);
-		
+
 		JSpinner spinner = new JSpinner();
 		spinner.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		spinner.setModel(new SpinnerNumberModel(new Integer(100), new Integer(100), null, new Integer(1)));
+		spinner.setModel(new SpinnerNumberModel(new Integer(100), new Integer(
+				100), null, new Integer(1)));
 		spinner.setBounds(124, 110, 70, 25);
 		IPdefinitions.add(spinner);
 		btnSave.addActionListener(new ActionListener() {
@@ -343,13 +357,14 @@ public class Interface extends JFrame {
 					Pattern pattern = Pattern.compile(expr);
 
 					Matcher matcher1 = pattern.matcher(args[0]);
-					Matcher matcher2 = pattern.matcher(args[0]);
-					Matcher matcher3 = pattern.matcher(args[0]);
+					Matcher matcher2 = pattern.matcher(args[2]);
+					Matcher matcher3 = pattern.matcher(args[4]);
 
 					if (matcher1.matches() && matcher2.matches()
-							&& matcher3.matches())
+							&& matcher3.matches()) {
 						config.storeConfigurations(args);
-					else
+						JOptionPane.showMessageDialog(null, "Restart program!");
+					} else
 						JOptionPane.showMessageDialog(null, "Invalid IPs!");
 
 				} catch (IOException e1) {
@@ -365,7 +380,7 @@ public class Interface extends JFrame {
 		lblLogs.setFont(new Font("Tahoma", Font.PLAIN, 20));
 		lblLogs.setBounds(0, 351, 600, 30);
 		getContentPane().add(lblLogs);
-		
+
 		logsOut = new JTextArea();
 		logsOut.setEditable(false);
 		logsOut.setFont(new Font("Monospaced", Font.PLAIN, 10));
