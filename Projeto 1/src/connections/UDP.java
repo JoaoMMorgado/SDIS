@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.MulticastSocket;
 
 /**
  * classe para enviar cenas
@@ -16,12 +16,13 @@ public class UDP {
 
 	String config[];
 	int type;
-	DatagramSocket socket;
+	MulticastSocket socket;
 
-	public UDP(String config[], int type) throws SocketException {
+	public UDP(String config[], int type) throws IOException {
 		this.config = config;
 		this.type = type;
-		socket = new DatagramSocket();
+		socket = new MulticastSocket();
+		socket.setTimeToLive(1);
 	}
 
 	public void sendMessage(String message) throws IOException {
@@ -51,7 +52,7 @@ public class UDP {
 		return socket;
 	}
 
-	public void setSocket(DatagramSocket socket) {
+	public void setSocket(MulticastSocket socket) {
 		this.socket = socket;
 	}
 }

@@ -29,6 +29,8 @@ import protocols.Config;
 import protocols.Protocols;
 
 import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
+import javax.swing.JComboBox;
 
 public class Interface extends JFrame {
 
@@ -38,6 +40,7 @@ public class Interface extends JFrame {
 	private Protocols protocols;
 	private String path;
 	private JTextArea logsOut;
+	private JComboBox<String> backupList;
 
 	private static final long serialVersionUID = 1L;
 
@@ -101,9 +104,9 @@ public class Interface extends JFrame {
 			mdrPort.setValue(Integer.parseInt(config.getConfig()[5]));
 		}
 
-		// TODO come�ar isto se pressionar um botao
+		// TODO comecar isto se pressionar um botao
 		// PROTOCOLS
-		protocols = new Protocols(config.getConfig(), logsOut);
+		protocols = new Protocols(config.getConfig(), logsOut, backupList);
 		protocols.start();
 	}
 
@@ -187,11 +190,11 @@ public class Interface extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (path == "" || path == null)
+				if (backupList.getSelectedIndex() < 0)
 					JOptionPane.showMessageDialog(null, "No file choosed!");
 				else
 					try {
-						protocols.restore(path,
+						protocols.restore(backupList.getSelectedIndex(),
 								(int) protocolVersionSpinner.getValue());
 					} catch (IOException e1) {
 						e1.printStackTrace();
@@ -223,6 +226,10 @@ public class Interface extends JFrame {
 			}
 		});
 
+		backupList = new JComboBox<String>();
+		backupList.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		backupList.setBounds(12, 41, 478, 25);
+		maganeFiles.add(backupList);
 	}
 
 	private void configurations() {
@@ -305,8 +312,19 @@ public class Interface extends JFrame {
 		IPdefinitions.add(mdrPort);
 
 		JButton btnSave = new JButton("Save");
-		btnSave.setBounds(250, 112, 100, 25);
+		btnSave.setBounds(488, 110, 100, 25);
 		IPdefinitions.add(btnSave);
+		
+		JLabel lblAvailableSpace = new JLabel("Available Space");
+		lblAvailableSpace.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		lblAvailableSpace.setBounds(12, 110, 100, 25);
+		IPdefinitions.add(lblAvailableSpace);
+		
+		JSpinner spinner = new JSpinner();
+		spinner.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		spinner.setModel(new SpinnerNumberModel(new Integer(100), new Integer(100), null, new Integer(1)));
+		spinner.setBounds(124, 110, 70, 25);
+		IPdefinitions.add(spinner);
 		btnSave.addActionListener(new ActionListener() {
 
 			String args[] = new String[6];
@@ -347,11 +365,13 @@ public class Interface extends JFrame {
 		lblLogs.setFont(new Font("Tahoma", Font.PLAIN, 20));
 		lblLogs.setBounds(0, 351, 600, 30);
 		getContentPane().add(lblLogs);
-
+		
 		logsOut = new JTextArea();
 		logsOut.setEditable(false);
 		logsOut.setFont(new Font("Monospaced", Font.PLAIN, 10));
-		logsOut.setBounds(0, 381, 600, 132);
-		getContentPane().add(logsOut);
+		logsOut.setBounds(0, 381, 600, 133);
+		JScrollPane scrollPane = new JScrollPane(logsOut);
+		scrollPane.setBounds(0, 381, 600, 133);
+		getContentPane().add(scrollPane);
 	}
 }

@@ -8,25 +8,28 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
+import javax.swing.JComboBox;
 import javax.swing.JTextArea;
 
 import connections.*;
+import fileManager.Chunk;
+import fileManager.SavedFile;
 
 public class ChunkBackup {
 
 	private String config[];
 	private JTextArea logsOut;
-	private Multicast MC;
+	private JComboBox<String> backupList;
 	private Multicast MDB;
 
-	public ChunkBackup(Multicast MC, String config[], JTextArea logsOut)
-			throws IOException {
-		this.MC = MC;
+	public ChunkBackup(String config[], JTextArea logsOut,
+			JComboBox<String> backupList) throws IOException {
 		this.config = config;
 		this.logsOut = logsOut;
+		this.backupList = backupList;
 		MDB = new Multicast(config, 2);
 	}
 
@@ -55,48 +58,46 @@ public class ChunkBackup {
 				logsOut.append(header + "\n");
 				String tokens[] = header.split(" ");
 
-				if (!tokens[0].equals("PUTCHUNK"))
-					return;
+				if (tokens[0].equals("PUTCHUNK")) {
 
-				byte[] dataTemp = new byte[message.length - header.length() + 2];
-				for (int i = header.length() + 2, j = 0; i < message.length; i++, j++)
-					dataTemp[j] = message[i];
+					byte[] dataTemp = new byte[message.length - header.length()
+							+ 2];
+					for (int i = header.length() + 2, j = 0; i < message.length; i++, j++)
+						dataTemp[j] = message[i];
 
-				byte data[] = trim(dataTemp);
+					byte data[] = Protocols.trim(dataTemp);
 
-				File newFile = new File(tokens[2] + "\\" + "file" + ".part"
-						+ tokens[3]);
+					File newFile = new File(tokens[2] + "\\" + "file" + ".part"
+							+ tokens[3]);
 
-				if (!newFile.exists() && !newFile.isDirectory()) {
+					if (!newFile.exists() && !newFile.isDirectory()) {
 
-					newFile.getParentFile().mkdirs();
-					newFile.createNewFile();
+						newFile.getParentFile().mkdirs();
+						newFile.createNewFile();
 
-					FileOutputStream output = new FileOutputStream(newFile);
-					output.write(data);
-					output.flush();
-					output.close();
+						FileOutputStream output = new FileOutputStream(newFile);
+						output.write(data);
+						output.flush();
+						output.close();
+
+						Chunk chunk = new Chunk(tokens[2],
+								Integer.parseInt(tokens[3]),
+								Integer.parseInt(tokens[4]));
+						Protocols.getFileManager().addChunk(chunk);
+
+					}
+
+					Thread.sleep(rand.nextInt(401));
+
+					UDP udp = new UDP(config, 0);
+					String response = msgStored(tokens[2], tokens[1], tokens[3]);
+					udp.sendMessage(response);
+					udp.close();
 				}
-
-				Thread.sleep(rand.nextInt(401));
-
-				UDP udp = new UDP(config, 0);
-				String response = msgStored(tokens[2], tokens[1], tokens[3]);
-				udp.sendMessage(response);
-				udp.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-	}
-
-	private byte[] trim(byte[] bytes) {
-		int i = bytes.length - 1;
-		while (i >= 0 && bytes[i] == 0) {
-			--i;
-		}
-
-		return Arrays.copyOf(bytes, i + 1);
 	}
 
 	public String msgHeader(String fileID, int repDegree, int protocolVersion,
@@ -130,7 +131,6 @@ public class ChunkBackup {
 	 */
 	public void backup(String path, int repDegree, int protocolVersion)
 			throws IOException, InterruptedException {
-		// dividir ficheiro e enviar chunks para o MDB
 
 		File file = new File(path);
 		String fileID = Protocols.fileID(file);
@@ -145,8 +145,8 @@ public class ChunkBackup {
 		UDP udp = new UDP(config, 2);
 		byte[] chunkData;
 
-		boolean stop = false;
-		long waitTime = 500;
+		// boolean stop = false;
+		// long waitTime = 500;
 
 		do {
 			String header = msgHeader(fileID, repDegree, protocolVersion,
@@ -159,54 +159,49 @@ public class ChunkBackup {
 
 			int sizeRead = inputStream.read(chunkData, 0, chunkData.length);
 
-			byte[] headerByte = header.getBytes();
-			byte[] message = merge(headerByte, chunkData);
+			byte[] headerByte = header.getBytes(StandardCharsets.ISO_8859_1);
+			byte[] message = Protocols.merge(headerByte, chunkData);
 
-//			udp.sendMessage(message);
-//			String confirmation = MC.getMessage();
-//			logsOut.append(confirmation + "\n");
+			udp.sendMessage(message);
 
-			int currentRepDegree = 0;
-			while (!stop && waitTime <= 31.5 * 1000) {
-				udp.sendMessage(message);
-				stop = waitForStoredMessages(waitTime, fileID, repDegree,
-						currentRepDegree);
-				waitTime *= 2;
-			}
+			// int currentRepDegree = 0;
+			// while (!stop && waitTime <= 31500) {
+			// udp.sendMessage(message);
+			//
+			// stop = waitForStoredMessages(waitTime, fileID, repDegree,
+			// currentRepDegree);
+			// waitTime *= 2;
+			// }
+
 			chunkNum++;
 			totalSizeRead += sizeRead;
 
 		} while (fileSize > totalSizeRead);
 
+		SavedFile savedFile = new SavedFile(file.getName(), fileID, chunkNum);
+		Protocols.getFileManager().addSavedFile(savedFile);
+		backupList.addItem(path);
+
 		inputStream.close();
 		udp.close();
 	}
 
-	private boolean waitForStoredMessages(long waitTime, String fileID,
-			int repDegree, int currentRepDegree) throws IOException {
+	// private boolean waitForStoredMessages(long waitTime, String fileID,
+	// int repDegree, int currentRepDegree) throws IOException {
+	//
+	// long end = System.currentTimeMillis() + waitTime;
+	//
+	// while (System.currentTimeMillis() <= end) {
+	// String confirmation = MC.getMessage();
+	//
+	// String[] tokens = confirmation.split(" ");
+	//
+	// if (tokens[0].equals("STORED") && tokens[2].equals(fileID))
+	// currentRepDegree++;
+	// logsOut.append(confirmation + "\n");
+	//
+	// }
+	// return currentRepDegree >= repDegree;
+	// }
 
-		long end = System.currentTimeMillis() + waitTime;
-
-		while (System.currentTimeMillis() <= end
-				&& currentRepDegree < repDegree) {
-			String confirmation = MC.getMessage();
-
-			String[] tokens = confirmation.split(" ");
-
-			if (tokens[0].equals("STORED") && tokens[2].equals(fileID))
-				currentRepDegree++;
-			logsOut.append(confirmation + "\n");
-
-		}
-		System.out.println("cenas3");
-		return currentRepDegree >= repDegree;
-	}
-
-	private byte[] merge(byte[] array1, byte[] array2) {
-		int length = array1.length + array2.length;
-		byte[] result = new byte[length];
-		System.arraycopy(array1, 0, result, 0, array1.length);
-		System.arraycopy(array2, 0, result, array1.length, array2.length);
-		return result;
-	}
 }

@@ -1,52 +1,67 @@
 package protocols;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
 import javax.swing.JTextArea;
 
 import connections.Multicast;
 import connections.UDP;
+import fileManager.SavedFile;
 
 public class FileRestore {
 
 	private String config[];
 	private JTextArea logsOut;
-	private Multicast MC;
 	private Multicast MDR;
 
-	public FileRestore(Multicast MC, String config[], JTextArea logsOut)
+	public FileRestore(String config[], JTextArea logsOut)
 			throws NumberFormatException, IOException {
+
 		this.config = config;
 		this.logsOut = logsOut;
-		this.MC = MC;
 
 		MDR = new Multicast(config, 4);
 	}
 
-	public void start() throws NumberFormatException, IOException,
-			InterruptedException {
+	public void sendChunks(String[] tokens) throws NumberFormatException,
+			IOException, InterruptedException {
 
 		Random rand = new Random();
+		Thread.sleep(rand.nextInt(401));
 
-		while (true) {
-			try {
-				String message = MDR.getMessage();
-				logsOut.append("MDR received: " + message + "\n");
+		if (Protocols.getFileManager().checkIfChunkExists(tokens[2],
+				Integer.parseInt(tokens[3]))) {
 
-				Thread.sleep(rand.nextInt(401));
+			UDP udp = new UDP(config, 4);
 
-				UDP udp = new UDP(config, 0);
-				udp.sendMessage("confirmation from MDR to MC");
-				udp.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			String header = msgChunkHeader(tokens[2], tokens[3]);
+			byte[] headerBytes = header.getBytes(StandardCharsets.ISO_8859_1);
+
+			File file = new File(tokens[2] + "\\" + "file" + ".part"
+					+ tokens[3]);
+			BufferedInputStream inputStream = new BufferedInputStream(
+					new FileInputStream(file));
+			byte[] data = new byte[64 * 1024];
+			inputStream.read(data, 0, data.length);
+			
+			byte[] chunk = Protocols.merge(headerBytes, Protocols.trim(data));
+
+			udp.sendMessage(chunk);
+			udp.close();
+			inputStream.close();
 		}
 	}
 
-	public String msgHeader(String fileID, int protocolVersion, int chunkNo) {
+	public String msgRequest(String fileID, int protocolVersion, int chunkNo) {
 		String msgType = "GETCHUNK";
 		String version = Integer.toString(protocolVersion);
 
@@ -56,43 +71,55 @@ public class FileRestore {
 				+ chunkNumber + " " + "\r\n";
 	}
 
-	public String msgChunk(String fileID, String protocolVersion, String chunkNo) {
+	public String msgChunkHeader(String fileID, String chunkNo) {
 		String msgType = "CHUNK";
 
-		return msgType + " " + protocolVersion + " " + fileID + " " + chunkNo
-				+ " " + "\r\n" + "\r\n";
+		return msgType + " " + fileID + " " + chunkNo + " " + "\r\n" + "\r\n";
 	}
 
 	/**
 	 * Makes a request to backup
 	 * 
-	 * @param path
+	 * @param selectedIndex
 	 * @param protocolVersion
 	 * @throws IOException
 	 */
-	public void restore(String path, int protocolVersion) throws IOException {
+	public void restore(int selectedIndex, int protocolVersion)
+			throws IOException {
 
-		File file = new File(path);
-		String fileID = Protocols.fileID(file);
-		long fileSize = file.length();
+		UDP udp = new UDP(config, 0);
 
-		//ir buscar a "database" o numero de chunks de file
-		int chunkNum = 1000; // mudar para numero de chunks a mandar para que o
-								// ficheiro esteja completo
-
-		// enviar chunks para o MDR e juntar ficheiro
-		UDP udp = new UDP(config, 4);
-
+		SavedFile savedFile = Protocols.getFileManager().getSavedFileAtIndex(
+				selectedIndex);
+		File restoredFile = new File(savedFile.getFileName());
+		FileOutputStream output = new FileOutputStream(restoredFile);
+		int chunkNo = 0;
 		do {
-			String header = msgHeader(fileID, protocolVersion, chunkNum);
+			String getChunk = msgRequest(savedFile.getFileID(),
+					protocolVersion, chunkNo);
 
-			byte[] message = header.getBytes();
-			System.out.println(message.length);
-			udp.sendMessage(message);
-		} while (chunkNum > 0);
+			udp.sendMessage(getChunk.getBytes(StandardCharsets.ISO_8859_1));
 
-		// depois de enviado e' preciso verficar se foi recebida a mensagem...
-		String message = MC.getMessage();
-		logsOut.append("MC received: " + message + "\n");
+			byte[] received = MDR.getByteMessage();
+
+			BufferedReader input = new BufferedReader(new InputStreamReader(
+					new ByteArrayInputStream(received)));
+			String header = input.readLine();
+			logsOut.append(header);
+
+			byte[] dataTemp = new byte[received.length - header.length() + 4];
+			
+			for (int i = header.length() + 2, j = 0; i < received.length; i++, j++)
+				dataTemp[j] = received[i];
+			
+			byte data[] = Protocols.trim(dataTemp);
+			output.write(data);
+			
+			chunkNo++;
+		} while (chunkNo < savedFile.getNumberChunks());
+
+		output.flush();
+		output.close();
+		udp.close();
 	}
 }
