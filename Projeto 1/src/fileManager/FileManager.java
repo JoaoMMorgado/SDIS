@@ -1,5 +1,6 @@
 package fileManager;
 
+import java.io.File;
 import java.util.Vector;
 
 public class FileManager {
@@ -43,8 +44,42 @@ public class FileManager {
 				i--;
 			}
 		}
-
-		return true;
+		
+		return deleteDirectory(new File(fileID));
 	}
 
+	/**
+	 * From stack overflow: function to delete a folder and all files inside it
+	 * http://stackoverflow.com/questions/3775694/deleting-folder-from-java
+	 * 
+	 * @param directory
+	 * @return
+	 */
+	public boolean deleteDirectory(File directory) {
+	    if(directory.exists()){
+	        File[] files = directory.listFiles();
+	        if(null!=files){
+	            for(int i=0; i<files.length; i++) {
+	                if(files[i].isDirectory()) {
+	                    deleteDirectory(files[i]);
+	                }
+	                else {
+	                    files[i].delete();
+	                }
+	            }
+	        }
+	    }
+	    return(directory.delete());
+	}
+
+	public boolean removeSavedFile(String fileID) {
+		for (int i = 0; i < savedFiles.size(); i++) {
+			if(savedFiles.get(i).getFileID().equals(fileID)) {
+				savedFiles.remove(i);
+				return true;
+			}
+		}
+		return false;
+	}
+	
 }

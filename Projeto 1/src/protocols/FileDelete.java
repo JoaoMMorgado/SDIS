@@ -38,10 +38,10 @@ public class FileDelete {
 
 		boolean noMoreChunks = Protocols.getFileManager().deleteAllChunks(
 				fileID);
-		
-		if(noMoreChunks) 
+
+		if (noMoreChunks)
 			JOptionPane.showMessageDialog(null, "File deleted!");
-			
+
 	}
 
 	public String msgDelete(String fileID, int protocolVersion) {
@@ -57,7 +57,7 @@ public class FileDelete {
 	 * @param path
 	 * @param protocolVersion
 	 * @throws IOException
-	 * @throws InterruptedException 
+	 * @throws InterruptedException
 	 */
 	public void delete(int selectedIndex, int protocolVersion)
 			throws IOException, InterruptedException {
@@ -67,15 +67,17 @@ public class FileDelete {
 		String message = msgDelete(savedFile.getFileID(), protocolVersion);
 		logsOut.append(message + "\n");
 		int i = 0;
-		while(i < 5) {
+		while (i < 5) {
 			udp.sendMessage(message.getBytes(StandardCharsets.ISO_8859_1));
 			Thread.sleep(100);
 			i++;
 		}
 		udp.close();
-		
-		backupList.removeItemAt(selectedIndex);
-		backupList.revalidate();
+
+		if (Protocols.getFileManager().removeSavedFile(savedFile.getFileID())) {
+			backupList.removeItemAt(selectedIndex);
+			backupList.revalidate();
+		}
 	}
 
 }

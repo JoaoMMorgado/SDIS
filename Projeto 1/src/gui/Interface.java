@@ -330,7 +330,7 @@ public class Interface extends JFrame {
 
 		JLabel lblAvailableSpace = new JLabel("Available Space");
 		lblAvailableSpace.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		lblAvailableSpace.setBounds(12, 110, 100, 25);
+		lblAvailableSpace.setBounds(12, 110, 110, 25);
 		IPdefinitions.add(lblAvailableSpace);
 
 		JSpinner spinner = new JSpinner();
