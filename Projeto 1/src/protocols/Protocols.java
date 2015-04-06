@@ -171,4 +171,8 @@ public class Protocols {
 	public static FileManager getFileManager() {
 		return fileManager;
 	}
+	
+	public void setFileManager(FileManager fileManager) {
+		Protocols.fileManager = fileManager;
+	}
 }

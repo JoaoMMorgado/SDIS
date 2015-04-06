@@ -1,9 +1,12 @@
 package fileManager;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.Vector;
 
-public class FileManager {
+public class FileManager implements Serializable {
+
+	private static final long serialVersionUID = 7026101236204892908L;
 
 	private Vector<Chunk> chunks;
 	private Vector<SavedFile> savedFiles;
@@ -82,4 +85,11 @@ public class FileManager {
 		return false;
 	}
 	
+	public Vector<Chunk> getChunks() {
+		return chunks;
+	}
+
+	public Vector<SavedFile> getSavedFiles() {
+		return savedFiles;
+	}
 }

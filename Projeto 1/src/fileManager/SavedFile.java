@@ -1,14 +1,21 @@
 package fileManager;
 
-public class SavedFile {
+import java.io.Serializable;
+
+public class SavedFile implements Serializable {
+
+	private static final long serialVersionUID = 8728840304655952192L;
+
 	private String fileName;
+	private String path;
 	private String fileID;
 	private int numberChunks;
 
-	public SavedFile(String fileName, String fileID, int numberChunks) {
+	public SavedFile(String path, String fileName, String fileID, int numberChunks) {
 		this.fileName = fileName;
 		this.fileID = fileID;
 		this.numberChunks = numberChunks;
+		this.path = path;
 	}
 
 	public int getNumberChunks() {
@@ -21,5 +28,9 @@ public class SavedFile {
 
 	public String getFileID() {
 		return fileID;
+	}
+	
+	public String getPath() {
+		return path;
 	}
 }

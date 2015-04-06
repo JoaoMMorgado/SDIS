@@ -41,7 +41,6 @@ public class FileDelete {
 
 		if (noMoreChunks)
 			JOptionPane.showMessageDialog(null, "File deleted!");
-
 	}
 
 	public String msgDelete(String fileID, int protocolVersion) {

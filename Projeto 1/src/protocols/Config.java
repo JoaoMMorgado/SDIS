@@ -1,18 +1,17 @@
 package protocols;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 public class Config {
 
 	private String config[];
 
 	public Config() {
-		setConfig(new String[6]);
+		config = new String[6];
 		
 		//default config
 		config[0] = "224.0.0.2";
@@ -25,15 +24,11 @@ public class Config {
 
 	public void storeConfigurations(String args[]) throws IOException {
 		
-		FileWriter fileWriter = new FileWriter("configuration.txt");
+		PrintWriter writer = new PrintWriter("configuration.txt", "UTF-8");
 
-		BufferedWriter writer = new BufferedWriter(fileWriter);
-
-		for (int i = 0; i < 6; i++) {
-//			config[i] = args[i];
+		for (int i = 0; i < 6; i++)
 			writer.write(args[i] + "\n");
-		}
-
+		
 		writer.close();
 	}
 

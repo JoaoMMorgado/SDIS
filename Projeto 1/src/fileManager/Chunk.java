@@ -1,7 +1,11 @@
 package fileManager;
 
-public class Chunk {
-	
+import java.io.Serializable;
+
+public class Chunk implements Serializable {
+
+	private static final long serialVersionUID = -7821027837975141236L;
+
 	String fileID;
 	int chunkNo;
 	int replicationDegree;
@@ -28,5 +32,4 @@ public class Chunk {
 	public int getCurrentReplicationDegree() {
 		return currentReplicationDegree;
 	}
-	
 }

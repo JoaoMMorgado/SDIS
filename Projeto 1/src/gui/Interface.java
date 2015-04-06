@@ -18,7 +18,14 @@ import javax.swing.SwingConstants;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.text.ParseException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +38,8 @@ import protocols.Protocols;
 import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
 import javax.swing.JComboBox;
+
+import fileManager.FileManager;
 
 public class Interface extends JFrame {
 
@@ -54,6 +63,26 @@ public class Interface extends JFrame {
 				try {
 					Interface frame = new Interface();
 					frame.setVisible(true);
+					frame.addWindowListener(new WindowAdapter() {
+						public void windowClosing(WindowEvent e) {
+							int i = JOptionPane.showConfirmDialog(null,
+									"Are you sure?");
+							if (i == 0) {
+								try {
+									FileOutputStream fileOut = new FileOutputStream(
+											"database.db");
+									ObjectOutputStream out = new ObjectOutputStream(
+											fileOut);
+									out.writeObject(Protocols.getFileManager());
+									out.close();
+									fileOut.close();
+								} catch (IOException e1) {
+									e1.printStackTrace();
+								}
+								System.exit(0);
+							}
+						}
+					});
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -66,8 +95,9 @@ public class Interface extends JFrame {
 	 * 
 	 * @throws ParseException
 	 * @throws IOException
+	 * @throws ClassNotFoundException
 	 */
-	public Interface() throws IOException {
+	public Interface() throws IOException, ClassNotFoundException {
 
 		getContentPane().setBackground(Color.LIGHT_GRAY);
 		setBackground(Color.LIGHT_GRAY);
@@ -77,6 +107,7 @@ public class Interface extends JFrame {
 		setLocationRelativeTo(null);
 		getContentPane().setLayout(null);
 
+		config = new Config();
 		// DEFINICOES DE IP
 		configurations();
 
@@ -86,9 +117,7 @@ public class Interface extends JFrame {
 		// LOGS TEXT
 		logsText();
 
-		// TODO bug aqui se nao tiver ficheiro com dados para comecar
 		// CONFIGURATIONS LOAD
-		Config config = new Config();
 		if (!config.readConfigurations()) {
 			JOptionPane
 					.showMessageDialog(null,
@@ -112,10 +141,26 @@ public class Interface extends JFrame {
 			mdrPort.setValue(Integer.parseInt(config.getConfig()[5]));
 		}
 
-		// TODO comecar isto se pressionar um botao
 		// PROTOCOLS
 		protocols = new Protocols(config.getConfig(), logsOut, backupList);
 		protocols.start();
+
+		File file = new File("database.db");
+		if (file.exists()) {
+			FileInputStream input = new FileInputStream("database.db");
+			ObjectInputStream objectInput = new ObjectInputStream(input);
+			FileManager fm = (FileManager) objectInput.readObject();
+			protocols.setFileManager(fm);
+			objectInput.close();
+			
+			updateComboBox();
+		}
+
+	}
+
+	private void updateComboBox() {
+		for(int i = 0; i < Protocols.getFileManager().getSavedFiles().size(); i++)
+			backupList.addItem(Protocols.getFileManager().getSavedFiles().get(i).getPath());
 	}
 
 	private void manageFiles() {

@@ -178,7 +178,7 @@ public class ChunkBackup {
 
 		} while (fileSize > totalSizeRead);
 
-		SavedFile savedFile = new SavedFile(file.getName(), fileID, chunkNum);
+		SavedFile savedFile = new SavedFile(path, file.getName(), fileID, chunkNum);
 		Protocols.getFileManager().addSavedFile(savedFile);
 		backupList.addItem(path);
 
