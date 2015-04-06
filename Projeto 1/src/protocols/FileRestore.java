@@ -105,11 +105,11 @@ public class FileRestore {
 			BufferedReader input = new BufferedReader(new InputStreamReader(
 					new ByteArrayInputStream(received)));
 			String header = input.readLine();
-			logsOut.append(header);
+			logsOut.append(header + "\n\n");
 
 			byte[] dataTemp = new byte[received.length - header.length() + 4];
 			
-			for (int i = header.length() + 2, j = 0; i < received.length; i++, j++)
+			for (int i = header.length() + 4, j = 0; i < received.length; i++, j++)
 				dataTemp[j] = received[i];
 			
 			byte data[] = Protocols.trim(dataTemp);

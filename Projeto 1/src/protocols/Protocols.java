@@ -54,7 +54,7 @@ public class Protocols {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-					logsOut.append(message + "\n");
+					logsOut.append(message);
 					startProtocol(message);
 				}
 			}
