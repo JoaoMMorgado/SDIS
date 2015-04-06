@@ -10,6 +10,7 @@ public class FileManager implements Serializable {
 
 	private Vector<Chunk> chunks;
 	private Vector<SavedFile> savedFiles;
+	private int spaceAvailable;
 
 	public FileManager() {
 		chunks = new Vector<Chunk>();
@@ -43,11 +44,12 @@ public class FileManager implements Serializable {
 
 		for (int i = 0; i < chunks.size(); i++) {
 			if (chunks.get(i).getFileID().equals(fileID)) {
+				increaseAvailableSpace(chunks.get(i).getChunkSize());
 				chunks.remove(i);
 				i--;
 			}
 		}
-		
+
 		return deleteDirectory(new File(fileID));
 	}
 
@@ -59,37 +61,52 @@ public class FileManager implements Serializable {
 	 * @return
 	 */
 	public boolean deleteDirectory(File directory) {
-	    if(directory.exists()){
-	        File[] files = directory.listFiles();
-	        if(null!=files){
-	            for(int i=0; i<files.length; i++) {
-	                if(files[i].isDirectory()) {
-	                    deleteDirectory(files[i]);
-	                }
-	                else {
-	                    files[i].delete();
-	                }
-	            }
-	        }
-	    }
-	    return(directory.delete());
+		if (directory.exists()) {
+			File[] files = directory.listFiles();
+			if (null != files) {
+				for (int i = 0; i < files.length; i++) {
+					if (files[i].isDirectory()) {
+						deleteDirectory(files[i]);
+					} else {
+						files[i].delete();
+					}
+				}
+			}
+		}
+		return (directory.delete());
 	}
 
 	public boolean removeSavedFile(String fileID) {
 		for (int i = 0; i < savedFiles.size(); i++) {
-			if(savedFiles.get(i).getFileID().equals(fileID)) {
+			if (savedFiles.get(i).getFileID().equals(fileID)) {
 				savedFiles.remove(i);
 				return true;
 			}
 		}
 		return false;
 	}
-	
+
 	public Vector<Chunk> getChunks() {
 		return chunks;
 	}
 
 	public Vector<SavedFile> getSavedFiles() {
 		return savedFiles;
+	}
+
+	public void decreaseAvailableSpace(int length) {
+		spaceAvailable -= (length / 1000);
+	}
+
+	public long getSpaceAvailable() {
+		return spaceAvailable;
+	}
+
+	public void increaseAvailableSpace(int length) {
+		spaceAvailable += (length / 1000);
+	}
+	
+	public void setSpaceAvailable(int spaceAvailable) {
+		this.spaceAvailable = spaceAvailable;
 	}
 }

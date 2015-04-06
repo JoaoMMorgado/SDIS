@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
+import java.util.Vector;
 
 import javax.swing.JComboBox;
 import javax.swing.JTextArea;
@@ -24,13 +25,17 @@ public class ChunkBackup {
 	private JTextArea logsOut;
 	private JComboBox<String> backupList;
 	private Multicast MDB;
+	private Vector<String> storedMessages;
 
 	public ChunkBackup(String config[], JTextArea logsOut,
 			JComboBox<String> backupList) throws IOException {
+
 		this.config = config;
 		this.logsOut = logsOut;
 		this.backupList = backupList;
+
 		MDB = new Multicast(config, 2);
+		storedMessages = new Vector<String>();
 	}
 
 	/**
@@ -42,8 +47,6 @@ public class ChunkBackup {
 	 */
 	public void start() throws NumberFormatException, IOException,
 			InterruptedException {
-
-		// falta processar todos os stored enviados pelos outros peers
 
 		Random rand = new Random();
 
@@ -67,24 +70,32 @@ public class ChunkBackup {
 
 					byte data[] = Protocols.trim(dataTemp);
 
-					File newFile = new File(tokens[2] + "\\" + "file" + ".part"
-							+ tokens[3]);
+					if (data.length < Protocols.getFileManager()
+							.getSpaceAvailable()) {
 
-					if (!newFile.exists() && !newFile.isDirectory()) {
+						File newFile = new File(tokens[2] + "\\" + "file"
+								+ ".part" + tokens[3]);
 
-						newFile.getParentFile().mkdirs();
-						newFile.createNewFile();
+						if (!newFile.exists() && !newFile.isDirectory()) {
 
-						FileOutputStream output = new FileOutputStream(newFile);
-						output.write(data);
-						output.flush();
-						output.close();
+							newFile.getParentFile().mkdirs();
+							newFile.createNewFile();
 
-						Chunk chunk = new Chunk(tokens[2],
-								Integer.parseInt(tokens[3]),
-								Integer.parseInt(tokens[4]));
-						Protocols.getFileManager().addChunk(chunk);
+							FileOutputStream output = new FileOutputStream(
+									newFile);
+							output.write(data);
+							output.flush();
+							output.close();
 
+							Protocols.getFileManager().decreaseAvailableSpace(
+									data.length);
+
+							Chunk chunk = new Chunk(tokens[2],
+									Integer.parseInt(tokens[3]),
+									Integer.parseInt(tokens[4]), data.length);
+							Protocols.getFileManager().addChunk(chunk);
+
+						}
 					}
 
 					Thread.sleep(rand.nextInt(401));
@@ -98,6 +109,10 @@ public class ChunkBackup {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void processStoredOtherPeers() {
+
 	}
 
 	public String msgHeader(String fileID, int repDegree, int protocolVersion,
@@ -145,8 +160,8 @@ public class ChunkBackup {
 		UDP udp = new UDP(config, 2);
 		byte[] chunkData;
 
-		// boolean stop = false;
-		// long waitTime = 500;
+		boolean stop = false;
+		long waitTime = 500;
 
 		do {
 			String header = msgHeader(fileID, repDegree, protocolVersion,
@@ -162,23 +177,23 @@ public class ChunkBackup {
 			byte[] headerByte = header.getBytes(StandardCharsets.ISO_8859_1);
 			byte[] message = Protocols.merge(headerByte, chunkData);
 
-			udp.sendMessage(message);
-
-			// int currentRepDegree = 0;
-			// while (!stop && waitTime <= 31500) {
 			// udp.sendMessage(message);
-			//
-			// stop = waitForStoredMessages(waitTime, fileID, repDegree,
-			// currentRepDegree);
-			// waitTime *= 2;
-			// }
+
+			while (!stop && waitTime <= 31500) {
+				udp.sendMessage(message);
+				stop = waitForStoredMessages(waitTime, fileID, repDegree);
+				waitTime *= 2;
+			}
 
 			chunkNum++;
 			totalSizeRead += sizeRead;
+			stop = false;
+			waitTime = 500;
 
 		} while (fileSize > totalSizeRead);
 
-		SavedFile savedFile = new SavedFile(path, file.getName(), fileID, chunkNum);
+		SavedFile savedFile = new SavedFile(path, file.getName(), fileID,
+				chunkNum);
 		Protocols.getFileManager().addSavedFile(savedFile);
 		backupList.addItem(path);
 
@@ -186,22 +201,30 @@ public class ChunkBackup {
 		udp.close();
 	}
 
-	// private boolean waitForStoredMessages(long waitTime, String fileID,
-	// int repDegree, int currentRepDegree) throws IOException {
-	//
-	// long end = System.currentTimeMillis() + waitTime;
-	//
-	// while (System.currentTimeMillis() <= end) {
-	// String confirmation = MC.getMessage();
-	//
-	// String[] tokens = confirmation.split(" ");
-	//
-	// if (tokens[0].equals("STORED") && tokens[2].equals(fileID))
-	// currentRepDegree++;
-	// logsOut.append(confirmation + "\n");
-	//
-	// }
-	// return currentRepDegree >= repDegree;
-	// }
+	public void addStoredMessage(String message) {
+		storedMessages.add(message);
+	}
+
+	private boolean waitForStoredMessages(long waitTime, String fileID,
+			int repDegree) throws IOException, InterruptedException {
+		int currentRepDegree = 0;
+		long end = System.currentTimeMillis() + waitTime;
+		int i = 0;
+		while (System.currentTimeMillis() <= end) {
+
+			if (i < storedMessages.size()) {
+				String[] tokens = storedMessages.get(i).split(" ");
+				// falta verificar se nao vem do mesmo ip -> guardar ip
+				// juntamente com a string... era "facil" mas sem hipotese de
+				// testar
+				if (tokens[0].equals("STORED") && tokens[2].equals(fileID))
+					currentRepDegree++;
+				i++;
+			}
+			Thread.sleep(50);
+		}
+		storedMessages.clear();
+		return currentRepDegree >= repDegree;
+	}
 
 }

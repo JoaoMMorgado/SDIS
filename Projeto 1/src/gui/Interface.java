@@ -50,6 +50,7 @@ public class Interface extends JFrame {
 	private String path;
 	private JTextArea logsOut;
 	private JComboBox<String> backupList;
+	private JSpinner spaceAvailable;
 
 	private static final long serialVersionUID = 1L;
 
@@ -65,21 +66,17 @@ public class Interface extends JFrame {
 					frame.setVisible(true);
 					frame.addWindowListener(new WindowAdapter() {
 						public void windowClosing(WindowEvent e) {
-							int i = JOptionPane.showConfirmDialog(null,
-									"Are you sure?");
-							if (i == 0) {
-								try {
-									FileOutputStream fileOut = new FileOutputStream(
-											"database.db");
-									ObjectOutputStream out = new ObjectOutputStream(
-											fileOut);
-									out.writeObject(Protocols.getFileManager());
-									out.close();
-									fileOut.close();
-								} catch (IOException e1) {
-									e1.printStackTrace();
-								}
+							try {
+								FileOutputStream fileOut = new FileOutputStream(
+										"database.db");
+								ObjectOutputStream out = new ObjectOutputStream(
+										fileOut);
+								out.writeObject(Protocols.getFileManager());
+								out.close();
+								fileOut.close();
 								System.exit(0);
+							} catch (IOException e1) {
+								e1.printStackTrace();
 							}
 						}
 					});
@@ -142,7 +139,8 @@ public class Interface extends JFrame {
 		}
 
 		// PROTOCOLS
-		protocols = new Protocols(config.getConfig(), logsOut, backupList);
+		protocols = new Protocols(config.getConfig(), logsOut, backupList,
+				(int) spaceAvailable.getValue() * 1000);
 		protocols.start();
 
 		File file = new File("database.db");
@@ -152,15 +150,16 @@ public class Interface extends JFrame {
 			FileManager fm = (FileManager) objectInput.readObject();
 			protocols.setFileManager(fm);
 			objectInput.close();
-			
+
 			updateComboBox();
 		}
 
 	}
 
 	private void updateComboBox() {
-		for(int i = 0; i < Protocols.getFileManager().getSavedFiles().size(); i++)
-			backupList.addItem(Protocols.getFileManager().getSavedFiles().get(i).getPath());
+		for (int i = 0; i < Protocols.getFileManager().getSavedFiles().size(); i++)
+			backupList.addItem(Protocols.getFileManager().getSavedFiles()
+					.get(i).getPath());
 	}
 
 	private void manageFiles() {
@@ -291,7 +290,7 @@ public class Interface extends JFrame {
 	}
 
 	private void configurations() {
-		JLabel configLabel = new JLabel("Configura\u00E7\u00F5es");
+		JLabel configLabel = new JLabel("Configurations");
 		configLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		configLabel.setFont(new Font("Tahoma", Font.PLAIN, 20));
 		configLabel.setBounds(0, 0, 600, 30);
@@ -372,18 +371,6 @@ public class Interface extends JFrame {
 		JButton btnSave = new JButton("Save");
 		btnSave.setBounds(488, 110, 100, 25);
 		IPdefinitions.add(btnSave);
-
-		JLabel lblAvailableSpace = new JLabel("Available Space");
-		lblAvailableSpace.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		lblAvailableSpace.setBounds(12, 110, 110, 25);
-		IPdefinitions.add(lblAvailableSpace);
-
-		JSpinner spinner = new JSpinner();
-		spinner.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		spinner.setModel(new SpinnerNumberModel(new Integer(100), new Integer(
-				100), null, new Integer(1)));
-		spinner.setBounds(124, 110, 70, 25);
-		IPdefinitions.add(spinner);
 		btnSave.addActionListener(new ActionListener() {
 
 			String args[] = new String[6];
@@ -417,6 +404,18 @@ public class Interface extends JFrame {
 				}
 			}
 		});
+
+		JLabel lblAvailableSpace = new JLabel("Available Space");
+		lblAvailableSpace.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		lblAvailableSpace.setBounds(12, 110, 110, 25);
+		IPdefinitions.add(lblAvailableSpace);
+
+		spaceAvailable = new JSpinner();
+		spaceAvailable.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		spaceAvailable.setModel(new SpinnerNumberModel(new Integer(100),
+				new Integer(100), null, new Integer(1)));
+		spaceAvailable.setBounds(124, 110, 70, 25);
+		IPdefinitions.add(spaceAvailable);
 	}
 
 	private void logsText() {

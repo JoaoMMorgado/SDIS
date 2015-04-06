@@ -19,15 +19,16 @@ public class Protocols {
 	private FileDelete fileDelete;
 	private Multicast MC;
 	private JTextArea logsOut;
-
+	
 	private static FileManager fileManager;
 
 	public Protocols(String[] config, JTextArea logsOut,
-			JComboBox<String> backupList) throws NumberFormatException,
+			JComboBox<String> backupList, int spaceAvailable) throws NumberFormatException,
 			IOException {
 		this.logsOut = logsOut;
 
 		fileManager = new FileManager();
+		fileManager.setSpaceAvailable(spaceAvailable);
 		MC = new Multicast(config, 0);
 		chunkBackup = new ChunkBackup(config, logsOut, backupList);
 		fileRestore = new FileRestore(config, logsOut);
@@ -83,7 +84,7 @@ public class Protocols {
 		String tokens[] = message.split(" ");
 
 		if (tokens[0].equals("STORED")) {
-			// adicionar as mensagens para um vetor dentro do backup ou parecido
+			chunkBackup.addStoredMessage(message);
 		} else if (tokens[0].equals("GETCHUNK")) {
 			Thread restore = new Thread(new Runnable() {
 
@@ -164,7 +165,6 @@ public class Protocols {
 	}
 
 	public void claimSpace() {
-		// TODO Auto-generated method stub
 
 	}
 
