@@ -416,6 +416,11 @@ public class Interface extends JFrame {
 				new Integer(100), null, new Integer(1)));
 		spaceAvailable.setBounds(124, 110, 70, 25);
 		IPdefinitions.add(spaceAvailable);
+		
+		JLabel lblMb = new JLabel("MB");
+		lblMb.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		lblMb.setBounds(201, 109, 60, 25);
+		IPdefinitions.add(lblMb);
 	}
 
 	private void logsText() {
