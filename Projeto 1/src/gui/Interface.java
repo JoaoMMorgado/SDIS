@@ -152,7 +152,9 @@ public class Interface extends JFrame {
 			objectInput.close();
 
 			updateComboBox();
+			spaceAvailable.setValue(Protocols.getFileManager().getSpaceAvailable());
 		}
+		
 
 	}
 

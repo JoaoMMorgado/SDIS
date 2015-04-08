@@ -64,8 +64,8 @@ public class ChunkBackup {
 				if (tokens[0].equals("PUTCHUNK")) {
 
 					byte[] dataTemp = new byte[message.length - header.length()
-							+ 2];
-					for (int i = header.length() + 2, j = 0; i < message.length; i++, j++)
+							+ 4];
+					for (int i = header.length() + 4, j = 0; i < message.length; i++, j++)
 						dataTemp[j] = message[i];
 
 					byte data[] = Protocols.trim(dataTemp);
@@ -124,7 +124,7 @@ public class ChunkBackup {
 		String replicationDegree = Integer.toString(repDegree);
 
 		return msgType + " " + version + ".0" + " " + fileID + " "
-				+ chunkNumber + " " + replicationDegree + " " + "\r\n";
+				+ chunkNumber + " " + replicationDegree + " " + "\r\n" + "\r\n";
 	}
 
 	public String msgStored(String fileID, String protocolVersion,
