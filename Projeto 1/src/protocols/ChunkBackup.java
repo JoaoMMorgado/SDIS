@@ -94,7 +94,6 @@ public class ChunkBackup {
 									Integer.parseInt(tokens[3]),
 									Integer.parseInt(tokens[4]), data.length);
 							Protocols.getFileManager().addChunk(chunk);
-
 						}
 					}
 
