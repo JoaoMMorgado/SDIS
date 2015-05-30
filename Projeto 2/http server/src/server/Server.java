@@ -1,12 +1,30 @@
 package server;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.security.Key;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.TreeMap;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -16,30 +34,67 @@ import com.sun.net.httpserver.HttpServer;
 public class Server {
 
 	static int HTTP_PORT = 80;
+	private static final byte[] ENCRYPTKEY = new String("MelhorFraseSempr")
+			.getBytes();
 
 	public static void main(String args[]) throws Exception {
 
 		HttpServer httpServer = HttpServer.create(new InetSocketAddress(
 				InetAddress.getLocalHost(), HTTP_PORT), 0);
-		httpServer.createContext("/server", new Handler());
+
+		Handler handler = null;
+
+		File file = new File("database.db");
+		if (file.exists()) {
+			FileInputStream input = new FileInputStream("database.db");
+			ObjectInputStream objectInput = new ObjectInputStream(input);
+			handler = (Handler) objectInput.readObject();
+			objectInput.close();
+		} else
+			handler = new Handler();
+
+		httpServer.createContext("/server", handler);
 		httpServer.setExecutor(null);
 		httpServer.start();
 
+		System.out.print("Enter \"q\" to quit: ");
+		Scanner sc = new Scanner(System.in);
+		String exit = sc.next();
+		if (exit.equals("q")) {
+			FileOutputStream fileOut = new FileOutputStream("database.db");
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(handler);
+			out.close();
+			fileOut.close();
+			sc.close();
+			System.exit(0);
+		}
+
 	}
 
-	static class Handler implements HttpHandler {
+	static class Handler implements HttpHandler, Serializable {
+
+		private static final long serialVersionUID = -7926521198689979665L;
 
 		private HashMap<String, String> users = new HashMap<String, String>();
 		private HashMap<String, String> loggedUsers = new HashMap<String, String>();
+		private HashMap<String, Integer> scores = new HashMap<String, Integer>();
 
-		public void handle(HttpExchange httpExchange) throws IOException {
+		private LinkedList<String> messages = new LinkedList<String>();
 
-			if (httpExchange.getRequestMethod().equalsIgnoreCase("GET"))
-				parseGetRequest(httpExchange);
-			else if (httpExchange.getRequestMethod().equalsIgnoreCase("PUT"))
-				parsePutRequest(httpExchange);
-			else if (httpExchange.getRequestMethod().equalsIgnoreCase("POST"))
-				parsePostRequest(httpExchange);
+		public void handle(HttpExchange httpExchange) {
+			try {
+				if (httpExchange.getRequestMethod().equalsIgnoreCase("GET"))
+					parseGetRequest(httpExchange);
+				else if (httpExchange.getRequestMethod()
+						.equalsIgnoreCase("PUT"))
+					parsePutRequest(httpExchange);
+				else if (httpExchange.getRequestMethod().equalsIgnoreCase(
+						"POST"))
+					parsePostRequest(httpExchange);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 
 		private String getRequestString(InputStream in) throws IOException {
@@ -59,18 +114,16 @@ public class Server {
 		}
 
 		private void parsePostRequest(HttpExchange httpExchange)
-				throws IOException {
+				throws Exception {
 
-			// verificar se o content que chegou veio em termos analisando o
-			// tamanho do body com o header.
-
-			String request = getRequestString(httpExchange.getRequestBody());
+			String request = decrypt(getRequestString(httpExchange
+					.getRequestBody()));
 
 			if (postRequest(request, httpExchange.getRemoteAddress()
 					.getAddress().getHostAddress()))
-				sendResponse(httpExchange, "SUCCESS", 200);
+				sendResponse(httpExchange, encrypt("SUCCESS"), 200);
 			else
-				sendResponse(httpExchange, "SERVER ERROR", 200);
+				sendResponse(httpExchange, encrypt("SERVER ERROR"), 200);
 			httpExchange.close();
 		}
 
@@ -80,6 +133,43 @@ public class Server {
 				return login(tokens, ip);
 			else if (tokens[0].toUpperCase().equals("LOGOUT"))
 				return logout(tokens);
+			else if (tokens[0].toUpperCase().equals("SCORE"))
+				return updateScore(tokens);
+			else if (tokens[0].toUpperCase().equals("NEWMESSAGE"))
+				return updateMessages(tokens);
+			return false;
+		}
+
+		private boolean updateMessages(String[] tokens) {
+
+			String username = tokens[1].substring(9);
+			String message = tokens[2].substring(8);
+
+			System.out.println(username);
+			System.out.println(message);
+			
+			if (messages.size() < 50)
+				return messages.add(username + ": " + message);
+			else {
+				messages.removeFirst();
+				return messages.add(username + ": " + message);
+			}
+		}
+
+		private boolean updateScore(String[] tokens) {
+
+			String username = tokens[1].substring(9);
+			String score = tokens[2].substring(6);
+			int newScore = Integer.parseInt(score);
+
+			if (!scores.containsKey(username)) {
+				scores.put(username, newScore);
+			} else {
+				int oldScore = scores.get(username);
+				if (newScore > oldScore)
+					scores.put(username, oldScore);
+			}
+
 			return true;
 		}
 
@@ -97,7 +187,8 @@ public class Server {
 			if (users.containsKey(username))
 				if (users.get(username).equals(password)) {
 					loggedUsers.put(username, ip);
-					System.out.println("Utilizador logado: " + username + ", " + ip);
+					System.out.println("Utilizador logado: " + username + ", "
+							+ ip);
 					return true;
 				}
 
@@ -105,13 +196,14 @@ public class Server {
 		}
 
 		private void parsePutRequest(HttpExchange httpExchange)
-				throws IOException {
-			String request = getRequestString(httpExchange.getRequestBody());
+				throws Exception {
+			String request = decrypt(getRequestString(httpExchange
+					.getRequestBody()));
 
 			if (putRequest(request))
-				sendResponse(httpExchange, "SUCCESS", 200);
+				sendResponse(httpExchange, encrypt("SUCCESS"), 200);
 			else
-				sendResponse(httpExchange, "SERVER ERROR", 200);
+				sendResponse(httpExchange, encrypt("SERVER ERROR"), 200);
 			httpExchange.close();
 		}
 
@@ -135,7 +227,8 @@ public class Server {
 			return false;
 		}
 
-		private void parseGetRequest(HttpExchange httpExchange) {
+		private void parseGetRequest(HttpExchange httpExchange)
+				throws Exception {
 
 			String response = "";
 
@@ -147,9 +240,18 @@ public class Server {
 				response = loggedUsers.toString();
 			else if (type.split("=")[0].toUpperCase().equals("IP")) {
 				response = getMyPublicIp(type.split("=")[1]);
+			} else if (type.split("=")[0].toUpperCase().equals("GET_SCORE")) {
+
+				TreeMap<String, Integer> sortedMap = SortByValue(scores);
+				System.out.println(sortedMap);
+
+				response = sortedMap.toString();
+			} else if (type.split("=")[0].toUpperCase().equals("MESSAGES")) {
+				response = messages.toString();
+				System.out.println(response);
 			}
 
-			sendResponse(httpExchange, response, 200);
+			sendResponse(httpExchange, encrypt(response), 200);
 			httpExchange.close();
 		}
 
@@ -161,7 +263,8 @@ public class Server {
 				String response, int code) {
 			try {
 				Headers responseHeaders = httpExchange.getResponseHeaders();
-				responseHeaders.set("Content-Type", "aplication/json");
+				responseHeaders.set("Content-Type",
+						"application/x-www-form-urlencoded");
 				httpExchange.sendResponseHeaders(code,
 						response.getBytes().length);
 				httpExchange.getResponseBody().write(response.getBytes());
@@ -172,5 +275,62 @@ public class Server {
 
 			return true;
 		}
+
+		/**
+		 * http://www.programcreek.com/2013/03/java-sort-map-by-value/
+		 */
+		class ValueComparator implements Comparator<String> {
+
+			Map<String, Integer> map;
+
+			public ValueComparator(Map<String, Integer> base) {
+				this.map = base;
+			}
+
+			public int compare(String a, String b) {
+				if (map.get(a) >= map.get(b)) {
+					return -1;
+				} else {
+					return 1;
+				}
+			}
+		}
+
+		public TreeMap<String, Integer> SortByValue(HashMap<String, Integer> map) {
+			ValueComparator vc = new ValueComparator(map);
+			TreeMap<String, Integer> sortedMap = new TreeMap<String, Integer>(
+					vc);
+			sortedMap.putAll(map);
+			return sortedMap;
+		}
+	}
+
+	/**
+	 * from:
+	 * http://www.code2learn.com/2011/06/encryption-and-decryption-of-data-
+	 * using.html at: 28/05/2015
+	 */
+	private static Key generateKey() throws Exception {
+		Key key = new SecretKeySpec(ENCRYPTKEY, "AES");
+		return key;
+	}
+
+	private static String encrypt(String Data) throws Exception {
+		Key key = generateKey();
+		Cipher c = Cipher.getInstance("AES");
+		c.init(Cipher.ENCRYPT_MODE, key);
+		byte[] encVal = c.doFinal(Data.getBytes());
+		String encryptedValue = new BASE64Encoder().encode(encVal);
+		return encryptedValue;
+	}
+
+	private static String decrypt(String encryptedData) throws Exception {
+		Key key = generateKey();
+		Cipher c = Cipher.getInstance("AES");
+		c.init(Cipher.DECRYPT_MODE, key);
+		byte[] decordedValue = new BASE64Decoder().decodeBuffer(encryptedData);
+		byte[] decValue = c.doFinal(decordedValue);
+		String decryptedValue = new String(decValue);
+		return decryptedValue;
 	}
 }

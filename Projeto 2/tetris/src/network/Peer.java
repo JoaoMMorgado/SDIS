@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 
 import javax.swing.JOptionPane;
 
@@ -18,7 +17,7 @@ import engine.Engine;
 public class Peer {
 	Engine engine;
 	public Board board;
-	String hostName = "172.30.40.240";
+	String hostName ;
 	MainWindow mainWindow;
 	int portNumber = 8000;
 
@@ -89,6 +88,7 @@ public class Peer {
 			engine.clearBoard();
 			engine.curPiece.setShape("NoShape");
 		} else if (tokens[0].equals("START")) {
+			if(!mainWindow.engine.isStarted){
 			hostName = tokens[1];
 			int reply = JOptionPane.showConfirmDialog(null, "Start Game with "
 					+ tokens[2] + "?", "Start Game", JOptionPane.YES_NO_OPTION);
@@ -103,7 +103,7 @@ public class Peer {
 			} else {
 				JOptionPane.showMessageDialog(null, "GOODBYE");
 			}
-
+			}
 		}
 	}
 
@@ -128,8 +128,8 @@ public class Peer {
 		}
 	}
 
-	public void sendStart() throws Exception {
-		
+	public void sendStart(String Ip) throws Exception {
+		hostName = Ip;
 		String myIP = mainWindow.client.getMyIp(mainWindow.sidePanel.txtUsername.getText());
 		System.out.println(myIP);
 		String send = "START " + myIP + " " + mainWindow.sidePanel.txtUsername.getText() + " ";

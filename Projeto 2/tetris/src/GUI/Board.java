@@ -15,8 +15,12 @@ import javax.swing.Timer;
 import network.Peer;
 import engine.Engine;
 
-@SuppressWarnings("serial")
+
 public class Board extends JPanel implements ActionListener{
+/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 public Engine engine;
 Timer timer;
 Peer peer;

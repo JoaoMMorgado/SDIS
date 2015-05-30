@@ -1,9 +1,7 @@
 package GUI;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.HeadlessException;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Vector;
@@ -32,6 +30,7 @@ public class SidePanel extends JPanel {
 	private JTextField txtPasswordRegister;
 	private JTextField txtRegisterConfirm;
 	JButton btnLogin;
+	JButton startButton;
 	JLabel lblLogin;
 	JFrame players;
 	JLabel lblUsername;
@@ -43,17 +42,15 @@ public class SidePanel extends JPanel {
 	JButton btnRegister;
 	public JLabel nextPieceLabel;
 	public NextPieceGraph nextPieceG;
-	JButton StartButton;
 	boolean loggedIn = false;
 	Vector<String[]> onlineUsers;
 	JList<String> lista = new JList<String>();
 
 	SidePanel(MainWindow tetris) {
-
+		setBounds(312, 30, 130, 547);
 		ScheduledExecutorService exec = Executors
 				.newSingleThreadScheduledExecutor();
 		exec.scheduleAtFixedRate(new Runnable() {
-			@Override
 			public void run() {
 				try {
 
@@ -66,7 +63,6 @@ public class SidePanel extends JPanel {
 
 		}, 0, 5, TimeUnit.SECONDS);
 		this.mainWindow = tetris;
-		// setBounds(312, 30, 130, 547);
 		setLayout(null);
 
 		JLabel lblScore = new JLabel("Score: ");
@@ -103,10 +99,10 @@ public class SidePanel extends JPanel {
 		add(btnLogin);
 		btnLogin.addActionListener(new ActionListener() {
 
-			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				// check login on database
 				try {
+					lista.setVisible(true);
 					login();
 				} catch (HeadlessException e) {
 					// TODO Auto-generated catch block
@@ -145,7 +141,6 @@ public class SidePanel extends JPanel {
 		add(btnRegister);
 		btnRegister.addActionListener(new ActionListener() {
 
-			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				try {
 					if (mainWindow.client.register(
@@ -208,7 +203,7 @@ public class SidePanel extends JPanel {
 		if (mainWindow.client.login(txtUsername.getText(),
 				txtPassword.getText())) {
 			mainWindow.loggedIn = true;
-			mainWindow.StartButton.setVisible(true);
+			startButton.setVisible(true);
 			txtUsername.setVisible(false);
 			txtPassword.setVisible(false);
 
@@ -218,7 +213,6 @@ public class SidePanel extends JPanel {
 			lblUsername.setVisible(false);
 			lblPassword.setVisible(false);
 			removeRegister();
-			players.setVisible(true);
 			mainWindow.peer.start();
 		} else {
 			String st = "Wrong Username/Password";
@@ -227,21 +221,36 @@ public class SidePanel extends JPanel {
 	}
 
 	void initializeUserList() {
-		players = new JFrame();
-		players.setLayout(null);
-		// players.setUndecorated(true);
-		// players.setLocationRelativeTo(null);
-		players.setSize(200, 320);
-		players.setResizable(false);
-		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
-		players.setLocation(dim.width / 2 - players.getSize().width / 2,
-				dim.height / 2 - players.getSize().height / 2);
+		
+		
 		lista = new JList<String>();
-		lista.setBounds(5, 5, 190, 290);
-		players.add(lista);
-		JButton startPlaying = new JButton();
-		startPlaying.setBounds(5, 290, 190, 15);
-		players.add(startPlaying);
+		lista.setBounds(7, 218, 115, 290);
+		add(lista);
+		lista.setVisible(false);
+		lista.setBorder(new LineBorder(new Color(0, 0, 0)));
+		startButton = new JButton("Start");
+		startButton.setBounds(7, 513, 115, 23);
+		add(startButton);
+		startButton.setVisible(false);
+		startButton.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent arg0) {
+				nextPieceLabel.setVisible(true);
+				nextPieceG.setVisible(true);
+				startButton.setVisible(false);
+				lista.setVisible(false);
+				try {
+					mainWindow.peer.sendStart(onlineUsers.get(lista.getSelectedIndex())[1]);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				mainWindow.boardGraph.requestFocus();
+
+			}
+
+		});
+		
 
 	}
 
@@ -249,8 +258,12 @@ public class SidePanel extends JPanel {
 		Vector<String> strings = new Vector<String>();
 		onlineUsers = mainWindow.client.getCurrentUsers();
 		for (int i = 0; i < onlineUsers.size(); i++) {
+			
 			if (!txtUsername.getText().equals(onlineUsers.get(i)[0]))
 				strings.add(onlineUsers.get(i)[0]);
+			else{
+				onlineUsers.remove(i);
+				i--;}
 		}
 		lista.setListData(strings);
 	}

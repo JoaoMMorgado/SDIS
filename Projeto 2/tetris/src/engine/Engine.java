@@ -193,7 +193,7 @@ public class Engine implements ActionListener {
 			final int numLines = lines.size();
 			Thread sendLineT = new Thread(new Runnable() {
 
-				@Override
+	
 				public void run() {
 					try {
 						mainWindow.peer.sendLine(numLines);
