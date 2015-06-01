@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.Vector;
 
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 import GUI.MainWindow;
@@ -66,11 +67,11 @@ public class Engine implements ActionListener {
 			if (!isPaused) {
 				isPaused = true;
 				timer.stop();
-				mainWindow.sidePanel.ScoreBar.setText("paused");
+				mainWindow.sidePanel.scoreBar.setText("paused");
 			} else {
 				isPaused = false;
 				timer.start();
-				mainWindow.sidePanel.ScoreBar.setText(String
+				mainWindow.sidePanel.scoreBar.setText(String
 						.valueOf(numLinesRemoved));
 			}
 	}
@@ -142,8 +143,12 @@ public class Engine implements ActionListener {
 			curPiece.setShape("NoShape");
 			timer.stop();
 			isStarted = false;
-			mainWindow.sidePanel.ScoreBar.setText("game over");
+			JOptionPane.showMessageDialog(null, "You Lost");
+			mainWindow.sidePanel.scoreBar.setText("game over");
 			mainWindow.peer.sendGameOver();
+			clearBoard();
+			curPiece.setShape("NoShape");
+			mainWindow.sidePanel.showPlayerList();
 		}
 	}
 
@@ -207,7 +212,7 @@ public class Engine implements ActionListener {
 			sendLineT.start();
 
 			numLinesRemoved += lines.size() * lines.size() * 100;
-			mainWindow.sidePanel.ScoreBar.setText(String
+			mainWindow.sidePanel.scoreBar.setText(String
 					.valueOf(numLinesRemoved));
 			isFallingFinished = true;
 			curPiece.setShape("NoShape");

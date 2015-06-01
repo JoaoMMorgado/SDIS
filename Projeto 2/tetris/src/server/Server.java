@@ -1,13 +1,8 @@
 package server;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -17,7 +12,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.TreeMap;
 
 import javax.crypto.Cipher;
@@ -33,43 +27,28 @@ import com.sun.net.httpserver.HttpServer;
 
 public class Server {
 
-	static int HTTP_PORT = 80;
+	private static int HTTP_PORT = 80;
 	private static final byte[] ENCRYPTKEY = new String("MelhorFraseSempr")
 			.getBytes();
 
-	public static void main(String args[]) throws Exception {
+	private static Handler handler;
+
+	public static Handler getHandler() {
+		return handler;
+	}
+
+	public void setHandler(Handler handler) {
+		Server.handler = handler;
+	}
+
+	public void startServer() throws Exception {
 
 		HttpServer httpServer = HttpServer.create(new InetSocketAddress(
 				InetAddress.getLocalHost(), HTTP_PORT), 0);
 
-		Handler handler = null;
-
-		File file = new File("database.db");
-		if (file.exists()) {
-			FileInputStream input = new FileInputStream("database.db");
-			ObjectInputStream objectInput = new ObjectInputStream(input);
-			handler = (Handler) objectInput.readObject();
-			objectInput.close();
-		} else
-			handler = new Handler();
-
 		httpServer.createContext("/server", handler);
 		httpServer.setExecutor(null);
 		httpServer.start();
-
-		System.out.print("Enter \"q\" to quit: ");
-		Scanner sc = new Scanner(System.in);
-		String exit = sc.next();
-		if (exit.equals("q")) {
-			FileOutputStream fileOut = new FileOutputStream("database.db");
-			ObjectOutputStream out = new ObjectOutputStream(fileOut);
-			out.writeObject(handler);
-			out.close();
-			fileOut.close();
-			sc.close();
-			System.exit(0);
-		}
-
 	}
 
 	static class Handler implements HttpHandler, Serializable {
@@ -145,9 +124,6 @@ public class Server {
 			String username = tokens[1].substring(9);
 			String message = tokens[2].substring(8);
 
-			System.out.println(username);
-			System.out.println(message);
-			
 			if (messages.size() < 50)
 				return messages.add(username + ": " + message);
 			else {
@@ -243,12 +219,9 @@ public class Server {
 			} else if (type.split("=")[0].toUpperCase().equals("GET_SCORE")) {
 
 				TreeMap<String, Integer> sortedMap = SortByValue(scores);
-				System.out.println(sortedMap);
-
 				response = sortedMap.toString();
 			} else if (type.split("=")[0].toUpperCase().equals("MESSAGES")) {
 				response = messages.toString();
-				System.out.println(response);
 			}
 
 			sendResponse(httpExchange, encrypt(response), 200);

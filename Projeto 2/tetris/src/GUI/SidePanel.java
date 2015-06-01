@@ -15,15 +15,18 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import javax.swing.Timer;
 import javax.swing.border.LineBorder;
 
 public class SidePanel extends JPanel {
-	
+
 	private static final long serialVersionUID = -3413635382022654561L;
-	
+
 	MainWindow mainWindow;
-	public JLabel ScoreBar;
+	JLabel lblScore;
+	public JLabel scoreBar;
 	public JTextField txtUsername;
 	private JTextField txtPassword;
 	private JTextField txtUsernameRegister;
@@ -53,25 +56,23 @@ public class SidePanel extends JPanel {
 		exec.scheduleAtFixedRate(new Runnable() {
 			public void run() {
 				try {
-
 					RefreshUserList();
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
 
-		}, 0, 5, TimeUnit.SECONDS);
+		}, 0, 4, TimeUnit.SECONDS);
 		this.mainWindow = tetris;
 		setLayout(null);
 
-		JLabel lblScore = new JLabel("Score: ");
+		lblScore = new JLabel("Score: ");
 		lblScore.setBounds(10, 11, 95, 14);
 		add(lblScore);
 
-		ScoreBar = new JLabel(" 0");
-		ScoreBar.setBounds(10, 39, 95, 14);
-		add(ScoreBar);
+		scoreBar = new JLabel(" 0");
+		scoreBar.setBounds(10, 39, 95, 14);
+		add(scoreBar);
 
 		nextPieceLabel = new JLabel("NextPiece");
 		nextPieceLabel.setBounds(10, 64, 95, 14);
@@ -88,7 +89,7 @@ public class SidePanel extends JPanel {
 		add(txtUsername);
 		txtUsername.setColumns(10);
 
-		txtPassword = new JTextField();
+		txtPassword = new JPasswordField();
 		txtPassword.setText("");
 		txtPassword.setBounds(10, 283, 86, 20);
 		add(txtPassword);
@@ -102,29 +103,25 @@ public class SidePanel extends JPanel {
 			public void actionPerformed(ActionEvent arg0) {
 				// check login on database
 				try {
-					lista.setVisible(true);
 					login();
-				} catch (HeadlessException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+
 			}
 		});
 
 		lblRegister = new JLabel("Register");
-		lblRegister.setBounds(10, 348, 46, 14);
+		lblRegister.setBounds(10, 348, 60, 14);
 		add(lblRegister);
 
-		txtUsernameRegister = new JTextField();
+		txtUsernameRegister = new JPasswordField();
 		txtUsernameRegister.setText("");
 		txtUsernameRegister.setBounds(10, 390, 86, 20);
 		add(txtUsernameRegister);
 		txtUsernameRegister.setColumns(10);
 
-		txtPasswordRegister = new JTextField();
+		txtPasswordRegister = new JPasswordField();
 		txtPasswordRegister.setBounds(10, 432, 86, 20);
 		add(txtPasswordRegister);
 		txtPasswordRegister.setColumns(10);
@@ -145,11 +142,10 @@ public class SidePanel extends JPanel {
 				try {
 					if (mainWindow.client.register(
 							txtUsernameRegister.getText(),
-							txtRegisterConfirm.getText(),
-							txtPasswordRegister.getText()))
+							txtPasswordRegister.getText(),
+							txtRegisterConfirm.getText()))
 						removeRegister();
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 
@@ -183,7 +179,7 @@ public class SidePanel extends JPanel {
 		nextPieceG.setBorder(new LineBorder(new Color(0, 0, 0)));
 		nextPieceG.setVisible(false);
 		add(nextPieceG);
-		initializeUserList();
+		initializePlayerList();
 	}
 
 	private void removeRegister() {
@@ -202,27 +198,64 @@ public class SidePanel extends JPanel {
 
 		if (mainWindow.client.login(txtUsername.getText(),
 				txtPassword.getText())) {
+			System.out.println("fds " + txtPassword.getText());
+
 			mainWindow.loggedIn = true;
-			startButton.setVisible(true);
-			txtUsername.setVisible(false);
-			txtPassword.setVisible(false);
-
-			btnLogin.setVisible(false);
-			lblLogin.setVisible(false);
-
-			lblUsername.setVisible(false);
-			lblPassword.setVisible(false);
+			removeLogin();
 			removeRegister();
+			showPlayerList();
 			mainWindow.peer.start();
+
+			Thread thread = new Thread(new Runnable() {
+
+				@Override
+				public void run() {
+					Chat chat = new Chat(mainWindow.client,
+							txtUsername.getText());
+					chat.startChating();
+					chat.setVisible(true);
+				}
+			});
+			thread.start();
+
 		} else {
 			String st = "Wrong Username/Password";
 			JOptionPane.showMessageDialog(null, st);
 		}
 	}
 
-	void initializeUserList() {
-		
-		
+	public void removePlayerList() {
+		lista.setVisible(false);
+		startButton.setVisible(false);
+	}
+	public void showScoreMenu(){
+		nextPieceG.setVisible(true);
+		scoreBar.setVisible(true);
+		nextPieceLabel.setVisible(true);
+		lblScore.setVisible(true);
+	}
+	public void showPlayerList() {
+		nextPieceG.setVisible(false);
+		scoreBar.setVisible(false);
+		nextPieceLabel.setVisible(false);
+		lblScore.setVisible(false);
+		lista.setVisible(true);
+		startButton.setVisible(true);
+
+	}
+
+	private void removeLogin() {
+		txtUsername.setVisible(false);
+		txtPassword.setVisible(false);
+		btnLogin.setVisible(false);
+		lblLogin.setVisible(false);
+		lblUsername.setVisible(false);
+		lblPassword.setVisible(false);
+
+	}
+
+	void initializePlayerList() {
+
 		lista = new JList<String>();
 		lista.setBounds(7, 218, 115, 290);
 		add(lista);
@@ -235,22 +268,32 @@ public class SidePanel extends JPanel {
 		startButton.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				nextPieceLabel.setVisible(true);
-				nextPieceG.setVisible(true);
-				startButton.setVisible(false);
-				lista.setVisible(false);
-				try {
-					mainWindow.peer.sendStart(onlineUsers.get(lista.getSelectedIndex())[1]);
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				mainWindow.boardGraph.requestFocus();
+				if (lista.getSelectedIndex() >= 0
+						&& lista.getSelectedIndex() < onlineUsers.size()) {
+					nextPieceLabel.setVisible(true);
+					nextPieceG.setVisible(true);
+					startButton.setVisible(false);
+					lista.setVisible(false);
+					try {
+						mainWindow.peer.sendStart(onlineUsers.get(lista
+								.getSelectedIndex())[1]);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					Timer timer = new Timer(5000, new ActionListener() {
 
+						public void actionPerformed(ActionEvent arg0) {
+							JOptionPane.showMessageDialog(null, "User is not responding!");
+			    			showPlayerList();
+						}
+					});
+					timer.setRepeats(false); // Only execute once
+					timer.start();
+					mainWindow.boardGraph.requestFocus();
+				}
 			}
 
 		});
-		
 
 	}
 
@@ -258,12 +301,13 @@ public class SidePanel extends JPanel {
 		Vector<String> strings = new Vector<String>();
 		onlineUsers = mainWindow.client.getCurrentUsers();
 		for (int i = 0; i < onlineUsers.size(); i++) {
-			
+
 			if (!txtUsername.getText().equals(onlineUsers.get(i)[0]))
 				strings.add(onlineUsers.get(i)[0]);
-			else{
+			else {
 				onlineUsers.remove(i);
-				i--;}
+				i--;
+			}
 		}
 		lista.setListData(strings);
 	}

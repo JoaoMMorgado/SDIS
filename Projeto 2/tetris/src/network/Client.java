@@ -3,9 +3,12 @@ package network;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.Key;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Vector;
 
 import javax.crypto.Cipher;
@@ -16,10 +19,14 @@ import sun.misc.BASE64Encoder;
 
 public class Client {
 
-	private static String URL = "http://192.168.1.37:80/server";
+	private static String URL;
 
 	private static final byte[] ENCRYPTKEY = new String("MelhorFraseSempr")
 			.getBytes();
+
+	public Client(String ip) {
+		URL = "http://" + ip + ":80/server";
+	}
 
 	public boolean sendMessage(String message, String username)
 			throws Exception {
@@ -53,8 +60,9 @@ public class Client {
 			String passwordCheck) throws Exception {
 		String response = new String();
 		if (password.equals(passwordCheck))
-			response = sendPostPut("register&username=" + username
-					+ "&password=" + password, "put");
+			response = sendPostPut("register&username="
+					+ username + "&password=" + encryptPassword(password),
+					"put");
 
 		if (!response.equals("SUCCESS"))
 			return false;
@@ -64,8 +72,8 @@ public class Client {
 
 	public boolean login(String username, String password) throws Exception {
 		if (sendPostPut(
-				"login&username=" + username + "&" + "password=" + password,
-				"post").equals("SUCCESS")) {
+				"login&username=" + username + "&" + "password="
+						+ encryptPassword(password), "post").equals("SUCCESS")) {
 			return true;
 		}
 		return false;
@@ -200,6 +208,14 @@ public class Client {
 		System.out.println(decrypt(response.toString()));
 
 		return decrypt(response.toString());
+	}
+
+	private String encryptPassword(String password)
+			throws NoSuchAlgorithmException, UnsupportedEncodingException {
+		MessageDigest md = MessageDigest.getInstance("SHA");
+		md.update(password.getBytes("UTF-8"));
+		byte buffer[] = md.digest();
+		return new BASE64Encoder().encode(buffer);
 	}
 
 	/**

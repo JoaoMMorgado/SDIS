@@ -7,7 +7,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
 
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -128,15 +127,7 @@ Peer peer;
 				case KeyEvent.VK_DOWN:
 					engine.dropOneLine();
 					break;
-				case KeyEvent.VK_T:
-					try {
-						peer.sendLine(1);
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					
-					break;
+				
 
 				}
 			}

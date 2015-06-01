@@ -1,13 +1,13 @@
 package GUI;
 
-import java.awt.EventQueue;
-
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
@@ -25,24 +25,23 @@ public class Chat extends JFrame {
 	private String username;
 	private JTextArea messages;
 
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					Chat frame = new Chat(new Client(), "manel");
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
+	private boolean windowClosed;
 
 	public Chat(Client client, String username) {
 		this.client = client;
 		this.username = username;
 
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		windowClosed = false;
+		addWindowListener(new java.awt.event.WindowAdapter() {
+			@Override
+			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+				dispose();
+				windowClosed = true;
+			}
+		});
+	}
+
+	public void startChating() {
 		setBounds(100, 100, 350, 600);
 		getContentPane().setLayout(null);
 		setResizable(false);
@@ -54,6 +53,7 @@ public class Chat extends JFrame {
 		getContentPane().add(lblChat);
 
 		messages = new JTextArea();
+		messages.setEditable(false);
 		DefaultCaret caret = (DefaultCaret) messages.getCaret();
 		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		JScrollPane scrollMessages = new JScrollPane(messages);
@@ -64,6 +64,28 @@ public class Chat extends JFrame {
 		JScrollPane scrollNewMessages = new JScrollPane(newMessage);
 		scrollNewMessages.setBounds(18, 460, 240, 80);
 		getContentPane().add(scrollNewMessages);
+		newMessage.addKeyListener(new KeyListener() {
+
+			@Override
+			public void keyTyped(KeyEvent e) {
+
+			}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+			}
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER)
+					try {
+						sendMessage(newMessage.getText());
+						newMessage.setText("");
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
+			}
+		});
 
 		JButton btnSend = new JButton("Send");
 		btnSend.setBounds(261, 462, 65, 77);
@@ -73,12 +95,12 @@ public class Chat extends JFrame {
 			public void actionPerformed(ActionEvent arg0) {
 				try {
 					sendMessage(newMessage.getText());
+					newMessage.setText("");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 		});
-
 		getMessages();
 	}
 
@@ -94,10 +116,10 @@ public class Chat extends JFrame {
 				try {
 					while (true) {
 						String newMessages = client.getChatMessages();
-						// System.out.println("fui ao server");
-						// System.out.println(newMessages);
 						messages.setText(newMessages);
-						Thread.sleep(200);
+						Thread.sleep(500);
+						if (windowClosed)
+							break;
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
