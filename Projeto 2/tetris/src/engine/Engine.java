@@ -2,8 +2,6 @@ package engine;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.Vector;
 
@@ -21,6 +19,7 @@ public class Engine implements ActionListener {
 	public Timer timer;
 	public boolean isFallingFinished = false;
 	public boolean isStarted = false;
+	public boolean multiPlayer;
 	boolean isPaused = false;
 	public int score = 0;
 	public int curX = 0;
@@ -31,6 +30,7 @@ public class Engine implements ActionListener {
 	String[] board;
 
 	public Engine(MainWindow mainwindow) {
+		multiPlayer = false;
 		mainWindow = mainwindow;
 		curPiece = new Shape();
 		nextPiece = new Shape();
@@ -71,8 +71,7 @@ public class Engine implements ActionListener {
 			} else {
 				isPaused = false;
 				timer.start();
-				mainWindow.sidePanel.scoreBar.setText(String
-						.valueOf(score));
+				mainWindow.sidePanel.scoreBar.setText(String.valueOf(score));
 			}
 	}
 
@@ -136,16 +135,31 @@ public class Engine implements ActionListener {
 
 		mainWindow.sidePanel.nextPieceG.repaint();
 
-		curX = BoardWidth / 2 ;
+		curX = BoardWidth / 2;
 		curY = BoardHeight - 1 + curPiece.minY();
 
 		if (!checkMove(curPiece, curX, curY)) {
 			curPiece.setShape("NoShape");
 			timer.stop();
 			isStarted = false;
-			mainWindow.peer.sendGameOver();
-			JOptionPane.showMessageDialog(null, "You Lost");
+			try {
+				if (multiPlayer)
+					mainWindow.peer.sendGameOver();
+				else
+					mainWindow.client.sendScore(
+							mainWindow.sidePanel.txtUsername.getText(), score,
+							false);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+			JOptionPane.showMessageDialog(null, "Game Over "
+					+ mainWindow.engine.score + " points!\n\n"
+					+ mainWindow.client.getScores(multiPlayer));
 			mainWindow.sidePanel.scoreBar.setText("game over");
+			
 			clearBoard();
 			curPiece.setShape("NoShape");
 			mainWindow.sidePanel.showPlayerList();
@@ -198,10 +212,10 @@ public class Engine implements ActionListener {
 			final int numLines = lines.size();
 			Thread sendLineT = new Thread(new Runnable() {
 
-	
 				public void run() {
 					try {
-						mainWindow.peer.sendLine(numLines);
+						if (multiPlayer)
+							mainWindow.peer.sendLine(numLines);
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -212,50 +226,12 @@ public class Engine implements ActionListener {
 			sendLineT.start();
 
 			score += lines.size() * lines.size() * 100;
-			mainWindow.sidePanel.scoreBar.setText(String
-					.valueOf(score));
+			mainWindow.sidePanel.scoreBar.setText(String.valueOf(score));
 			isFallingFinished = true;
 			curPiece.setShape("NoShape");
 		}
 	}
 
-	class Keyboard extends KeyAdapter {
-		public void keyPressed(KeyEvent e) {
-
-			if (isStarted && curPiece.getShape() != "NoShape") {
-
-				int keycode = e.getKeyCode();
-
-				switch (keycode) {
-				case KeyEvent.VK_ENTER:
-
-					pause();
-					break;
-				case KeyEvent.VK_LEFT:
-					checkMove(curPiece, curX - 1, curY);
-					break;
-				case KeyEvent.VK_RIGHT:
-					checkMove(curPiece, curX + 1, curY);
-					break;
-				case KeyEvent.VK_D:
-					checkMove(curPiece.rotateRight(), curX, curY);
-					break;
-				case KeyEvent.VK_UP:
-					checkMove(curPiece.rotateRight(), curX, curY);
-					break;
-				case KeyEvent.VK_A:
-					checkMove(curPiece.rotateLeft(), curX, curY);
-					break;
-				case KeyEvent.VK_SPACE:
-					dropDown();
-					break;
-				case KeyEvent.VK_DOWN:
-					dropOneLine();
-					break;
-
-				}
-			}
-
-		}
-	}
+	
+	
 }

@@ -49,7 +49,7 @@ public class Server {
 		httpServer.createContext("/server", handler);
 		httpServer.setExecutor(null);
 		httpServer.start();
-		
+
 	}
 
 	static class Handler implements HttpHandler, Serializable {
@@ -58,12 +58,14 @@ public class Server {
 
 		private HashMap<String, String> users = new HashMap<String, String>();
 		private HashMap<String, String> loggedUsers = new HashMap<String, String>();
-		private HashMap<String, Integer> scores = new HashMap<String, Integer>();
+		private HashMap<String, Integer> multiplayerScores = new HashMap<String, Integer>();
+		private HashMap<String, Integer> singleplayerScores = new HashMap<String, Integer>();
 
 		private LinkedList<String> messages = new LinkedList<String>();
-		
-		public void cleanLoggedUsers() {
+
+		public void clean() {
 			loggedUsers.clear();
+			messages.clear();
 		}
 
 		public void handle(HttpExchange httpExchange) {
@@ -142,13 +144,25 @@ public class Server {
 			String username = tokens[1].substring(9);
 			String score = tokens[2].substring(6);
 			int newScore = Integer.parseInt(score);
+			
+			System.out.println(username + " " + score);
 
-			if (!scores.containsKey(username)) {
-				scores.put(username, newScore);
-			} else {
-				int oldScore = scores.get(username);
-				if (newScore > oldScore)
-					scores.put(username, oldScore);
+			if (tokens[3].toUpperCase().equals("MULTIPLAYER")) {
+				if (!multiplayerScores.containsKey(username)) {
+					multiplayerScores.put(username, newScore);
+				} else {
+					int oldScore = multiplayerScores.get(username);
+					if (newScore > oldScore)
+						multiplayerScores.put(username, newScore);
+				}
+			} else if (tokens[3].toUpperCase().equals("SINGLEPLAYER")) {
+				if (!singleplayerScores.containsKey(username)) {
+					singleplayerScores.put(username, newScore);
+				} else {
+					int oldScore = singleplayerScores.get(username);
+					if (newScore > oldScore)
+						singleplayerScores.put(username, newScore);
+				}
 			}
 
 			return true;
@@ -221,8 +235,13 @@ public class Server {
 				response = loggedUsers.toString();
 			else if (type.split("=")[0].toUpperCase().equals("IP")) {
 				response = getMyPublicIp(type.split("=")[1]);
-			} else if (type.split("=")[0].toUpperCase().equals("GET_SCORE")) {
-				TreeMap<String, Integer> sortedMap = SortByValue(scores);
+			} else if (type.split("=")[0].toUpperCase()
+					.equals("GET_MULT_SCORE")) {
+				TreeMap<String, Integer> sortedMap = SortByValue(multiplayerScores);
+				response = sortedMap.toString();
+			} else if (type.split("=")[0].toUpperCase().equals(
+					"GET_SINGLE_SCORE")) {
+				TreeMap<String, Integer> sortedMap = SortByValue(singleplayerScores);
 				response = sortedMap.toString();
 			} else if (type.split("=")[0].toUpperCase().equals("MESSAGES")) {
 				response = messages.toString();

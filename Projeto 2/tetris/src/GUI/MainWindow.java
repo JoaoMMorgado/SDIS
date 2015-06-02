@@ -21,7 +21,7 @@ public class MainWindow extends JFrame {
 	public SidePanel sidePanel;
 	JButton StartButton;
 	boolean loggedIn = false;
-	static SoundPlayer menuMusic;
+	public SoundPlayer menuMusic;
 
 	public MainWindow(String ip) {
 
@@ -44,7 +44,6 @@ public class MainWindow extends JFrame {
 		setSize(458, 646);
 		setTitle("Tetris");
 		this.addWindowListener(new java.awt.event.WindowAdapter() {
-			@Override
 			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
 
 				if (loggedIn) {

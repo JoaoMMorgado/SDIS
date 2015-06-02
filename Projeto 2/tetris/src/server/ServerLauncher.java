@@ -39,7 +39,7 @@ public class ServerLauncher extends JFrame {
 						@Override
 						public void windowClosing(java.awt.event.WindowEvent e) {
 							try {
-								Server.getHandler().cleanLoggedUsers();
+								Server.getHandler().clean();
 								FileOutputStream fileOut = new FileOutputStream(
 										"database.db");
 								ObjectOutputStream out = new ObjectOutputStream(

@@ -29,30 +29,53 @@ public class Client {
 		URL = "http://" + ip + ":80/server";
 	}
 
-	public boolean sendScore(String username, int score) {
-
-		if (sendPostPut(
-				"score&username=" + username + "&" + "score="
-						+ Integer.toString(score), "post").equals("SUCCESS")) {
-			return true;
+	public boolean sendScore(String username, int score, boolean multiplayer) {
+		System.out.println("score&username=" + username + "&" + "score="
+				+ Integer.toString(score) + "&singleplayer");
+		if (multiplayer) {
+			if (sendPostPut(
+					"score&username=" + username + "&" + "score="
+							+ Integer.toString(score) + "&multiplayer", "post")
+					.equals("SUCCESS"))
+				return true;
+		} else {
+			if (sendPostPut(
+					"score&username=" + username + "&" + "score="
+							+ Integer.toString(score) + "&singleplayer", "post")
+					.equals("SUCCESS"))
+				return true;
 		}
 
 		return false;
 	}
 
-	public String getScores() {
+	public String getScores(boolean multiplayer) {
 		String scores = "";
 
-		StringBuffer message = sendGet("get_score");
-		message.deleteCharAt(0);
-		message.deleteCharAt(message.length() - 1);
+		if (multiplayer) {
+			StringBuffer message = sendGet("GET_MULT_SCORE");
+			message.deleteCharAt(0);
+			message.deleteCharAt(message.length() - 1);
 
-		String[] tempScores = message.toString().split(", ");
+			String[] tempScores = message.toString().split(", ");
 
-		for (int i = 0; i < 10 && i < tempScores.length; i++) {
-			String token[] = tempScores[i].split("=");
-			scores += Integer.toString(i + 1) + ": " + token[0] + "  -  "
-					+ token[1] + "\n";
+			for (int i = 0; i < 10 && i < tempScores.length; i++) {
+				String token[] = tempScores[i].split("=");
+				scores += Integer.toString(i + 1) + ": " + token[0] + "  -  "
+						+ token[1] + "\n";
+			}
+		} else {
+			StringBuffer message = sendGet("GET_SINGLE_SCORE");
+			message.deleteCharAt(0);
+			message.deleteCharAt(message.length() - 1);
+
+			String[] tempScores = message.toString().split(", ");
+
+			for (int i = 0; i < 10 && i < tempScores.length; i++) {
+				String token[] = tempScores[i].split("=");
+				scores += Integer.toString(i + 1) + ": " + token[0] + "  -  "
+						+ token[1] + "\n";
+			}
 		}
 
 		return scores;
@@ -86,7 +109,8 @@ public class Client {
 	}
 
 	public boolean register(String username, String password,
-			String passwordCheck) throws Exception {
+			String passwordCheck) throws NoSuchAlgorithmException,
+			UnsupportedEncodingException {
 		String response = new String();
 		if (password.equals(passwordCheck))
 			response = sendPostPut("register&username=" + username
@@ -98,13 +122,13 @@ public class Client {
 			return true;
 	}
 
-	public boolean login(String username, String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-		if (sendPostPut(
-				"login&username=" + username + "&" + "password="
-						+ encryptPassword(password), "post").equals("SUCCESS")) {
-			return true;
-		}
-		return false;
+	public String login(String username, String password)
+			throws NoSuchAlgorithmException, UnsupportedEncodingException {
+		String response = sendPostPut("login&username=" + username + "&"
+				+ "password=" + encryptPassword(password), "post");
+
+		return response;
+
 	}
 
 	public void logout(String username) {
@@ -249,7 +273,7 @@ public class Client {
 			JOptionPane.showMessageDialog(null, "Server is not running! :(");
 			System.err.println("server not running...");
 		}
-		return null;
+		return "FAILED";
 	}
 
 	private String encryptPassword(String password)

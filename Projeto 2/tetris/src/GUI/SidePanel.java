@@ -34,6 +34,7 @@ public class SidePanel extends JPanel {
 	private JTextField txtRegisterConfirm;
 	JButton btnLogin;
 	JButton startButton;
+	JButton btnStartAlone;
 	JLabel lblLogin;
 	JFrame players;
 	JLabel lblUsername;
@@ -44,15 +45,16 @@ public class SidePanel extends JPanel {
 	JLabel lblRegister;
 	JButton btnRegister;
 	public JLabel nextPieceLabel;
-	public JButton chatButton ;
+	public JButton chatButton;
 	public NextPieceGraph nextPieceG;
 	boolean loggedIn = false;
 	Vector<String[]> onlineUsers;
 	public JList<String> lista = new JList<String>();
 	Chat chat;
+
 	SidePanel(MainWindow tetris) {
 		setBounds(312, 30, 130, 576);
-		
+
 		this.mainWindow = tetris;
 		setLayout(null);
 
@@ -88,18 +90,7 @@ public class SidePanel extends JPanel {
 		btnLogin = new JButton("Login");
 		btnLogin.setBounds(10, 314, 89, 23);
 		add(btnLogin);
-		btnLogin.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent arg0) {
-				// check login on database
-				try {
-					login();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
-			}
-		});
+		
 
 		lblRegister = new JLabel("Register");
 		lblRegister.setBounds(10, 348, 60, 14);
@@ -126,22 +117,6 @@ public class SidePanel extends JPanel {
 		btnRegister = new JButton("Register");
 		btnRegister.setBounds(10, 502, 89, 23);
 		add(btnRegister);
-		btnRegister.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					if (mainWindow.client.register(
-							txtUsernameRegister.getText(),
-							txtPasswordRegister.getText(),
-							txtRegisterConfirm.getText()))
-						removeRegister();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
-			}
-
-		});
 
 		lblUsername = new JLabel("Username:");
 		lblUsername.setBounds(10, 232, 71, 14);
@@ -169,7 +144,7 @@ public class SidePanel extends JPanel {
 		nextPieceG.setBorder(new LineBorder(new Color(0, 0, 0)));
 		nextPieceG.setVisible(false);
 		add(nextPieceG);
-		
+
 		scoreBar.setVisible(false);
 		nextPieceLabel.setVisible(false);
 		lblScore.setVisible(false);
@@ -189,9 +164,9 @@ public class SidePanel extends JPanel {
 	}
 
 	protected void login() throws HeadlessException, Exception {
-
-		if (mainWindow.client.login(txtUsername.getText(),
-				txtPassword.getText())) {
+		String response = mainWindow.client.login(txtUsername.getText(),
+				txtPassword.getText());
+		if (response.equals("SUCCESS")) {
 			startClient();
 			chatButton.setVisible(true);
 			mainWindow.loggedIn = true;
@@ -200,11 +175,9 @@ public class SidePanel extends JPanel {
 			showPlayerList();
 			mainWindow.peer.start();
 
-			
-			
-		} else {
-			String st = "Wrong Username/Password";
-			JOptionPane.showMessageDialog(null, st);
+		} else if (response.equals("SERVER ERROR")) {
+
+			JOptionPane.showMessageDialog(null, "Wrong Username/Password");
 		}
 	}
 
@@ -221,20 +194,23 @@ public class SidePanel extends JPanel {
 			}
 
 		}, 0, 4, TimeUnit.SECONDS);
-		
+
 	}
 
 	public void removePlayerList() {
 		lista.setVisible(false);
 		startButton.setVisible(false);
 	}
-	public void showScoreMenu(){
+
+	public void showScoreMenu() {
 		nextPieceG.setVisible(true);
 		scoreBar.setVisible(true);
 		nextPieceLabel.setVisible(true);
 		lblScore.setVisible(true);
 	}
+
 	public void showPlayerList() {
+		mainWindow.menuMusic.stop();
 		chatButton.setVisible(true);
 		nextPieceG.setVisible(false);
 		scoreBar.setVisible(false);
@@ -242,6 +218,7 @@ public class SidePanel extends JPanel {
 		lblScore.setVisible(false);
 		lista.setVisible(true);
 		startButton.setVisible(true);
+		btnStartAlone.setVisible(true);
 
 	}
 
@@ -258,39 +235,29 @@ public class SidePanel extends JPanel {
 	void initializePlayerList() {
 
 		lista = new JList<String>();
-		lista.setBounds(7, 218, 115, 290);
+		lista.setBounds(7, 170, 115, 290);
 		add(lista);
 		lista.setVisible(false);
 		lista.setBorder(new LineBorder(new Color(0, 0, 0)));
-		
+
 		chatButton = new JButton("CHAT");
 		chatButton.setBounds(7, 547, 115, 22);
 		add(chatButton);
 		chatButton.setVisible(false);
-		chatButton.addActionListener(new ActionListener(){
 
-			public void actionPerformed(ActionEvent arg0) {
-				Thread thread = new Thread(new Runnable() {
-
-					@Override
-					public void run() {
-						chat = new Chat(mainWindow.client,
-								txtUsername.getText());
-						chat.startChating();
-						chat.setVisible(true);
-					}
-				});
-				thread.start();
-				
-			}
-			
-		});
-		
-		
-		startButton = new JButton("Start");
+		startButton = new JButton("Start Multiplayer");
 		startButton.setBounds(7, 513, 115, 23);
 		add(startButton);
 		startButton.setVisible(false);
+		btnStartAlone = new JButton("Start Alone");
+		btnStartAlone.setBounds(7, 470, 115, 23);
+		add(btnStartAlone);
+		btnStartAlone.setVisible(false);
+		setButtonListeners();
+
+	}
+
+	private void setButtonListeners() {
 		startButton.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
@@ -300,12 +267,13 @@ public class SidePanel extends JPanel {
 					nextPieceG.setVisible(true);
 					startButton.setVisible(false);
 					lista.setVisible(false);
-					
+
 					timer = new Timer(5000, new ActionListener() {
 
 						public void actionPerformed(ActionEvent arg0) {
-							JOptionPane.showMessageDialog(null, "User is not responding!");
-			    			showPlayerList();
+							JOptionPane.showMessageDialog(null,
+									"User is not responding!");
+							showPlayerList();
 						}
 					});
 					timer.setRepeats(false); // Only execute once
@@ -316,10 +284,80 @@ public class SidePanel extends JPanel {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+					lblScore.setVisible(true);
+					scoreBar.setVisible(true);
 					mainWindow.boardGraph.requestFocus();
 				}
 			}
 
+		});
+
+		btnStartAlone.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) {
+				mainWindow.menuMusic.play();
+				mainWindow.engine.multiPlayer = false;
+				nextPieceLabel.setVisible(true);
+				nextPieceG.setVisible(true);
+				startButton.setVisible(false);
+				lista.setVisible(false);
+				btnStartAlone.setVisible(false);
+				mainWindow.boardGraph.requestFocus();
+				mainWindow.engine.start();
+				mainWindow.engine.clearBoard();
+				lblScore.setVisible(true);
+				scoreBar.setVisible(true);
+				
+
+			}
+
+		});
+
+		chatButton.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent arg0) {
+				Thread thread = new Thread(new Runnable() {
+
+					@Override
+					public void run() {
+						chat = new Chat(mainWindow.client, txtUsername
+								.getText());
+						chat.startChating();
+						chat.setVisible(true);
+					}
+				});
+				thread.start();
+
+			}
+
+		});
+		btnRegister.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					if (mainWindow.client.register(
+							txtUsernameRegister.getText(),
+							txtPasswordRegister.getText(),
+							txtRegisterConfirm.getText()))
+						removeRegister();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
+			}
+
+		});
+		btnLogin.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent arg0) {
+				// check login on database
+				try {
+					login();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
+			}
 		});
 
 	}

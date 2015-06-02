@@ -25,6 +25,7 @@ public class Peer {
 	int failedSend = 0;
 	boolean timeout = false;
 	public Thread peerT;
+	Timer timer;
 
 	public Peer(Engine engine, MainWindow mainWindow) {
 		this.engine = engine;
@@ -95,6 +96,7 @@ public class Peer {
 			mainWindow.sidePanel.showScoreMenu();
 			mainWindow.sidePanel.timer.stop();
 			engine.start();
+			engine.multiPlayer = true;
 			break;
 		case "PLAYING":
 			JOptionPane.showMessageDialog(null, "User is Already Playing!");
@@ -109,21 +111,21 @@ public class Peer {
 		case "GAMEOVER":
 			mainWindow.client.sendScore(
 					mainWindow.sidePanel.txtUsername.getText(),
-					mainWindow.engine.score);
+					mainWindow.engine.score, true);
 			mainWindow.engine.isStarted = false;
 			engine.timer.stop();
-			JOptionPane.showMessageDialog(null,
-					"You won with " + mainWindow.engine.score + " points!\n\n"
-							+ mainWindow.client.getScores());
+			JOptionPane.showMessageDialog(null, "You won with "
+					+ mainWindow.engine.score + " points!\n\n"
+					+ mainWindow.client.getScores(engine.multiPlayer));
 			engine.clearBoard();
+			mainWindow.engine.isStarted = false;
 			engine.curPiece.setShape("NoShape");
 			mainWindow.sidePanel.showPlayerList();
 			break;
 		case "START":
 			if (!mainWindow.engine.isStarted) {
-
 				hostName = tokens[1];
-				Timer timer = new Timer(5000, new ActionListener() {
+				timer = new Timer(5000, new ActionListener() {
 
 					public void actionPerformed(ActionEvent arg0) {
 						timeout = true;
@@ -139,7 +141,7 @@ public class Peer {
 				if (!timeout)
 					if (reply == JOptionPane.YES_OPTION) {
 						timer.stop();
-
+						
 						mainWindow.sidePanel.nextPieceLabel.setVisible(true);
 						mainWindow.sidePanel.nextPieceG.setVisible(true);
 						mainWindow.boardGraph.requestFocus();
@@ -147,6 +149,7 @@ public class Peer {
 						if (sendConfirmStart()) {
 							mainWindow.sidePanel.removePlayerList();
 							engine.start();
+							engine.multiPlayer = true;
 
 						}
 					} else {
@@ -169,7 +172,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 500);
+					.connect(new InetSocketAddress(hostName, portNumber), 1000);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -197,7 +200,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 500);
+					.connect(new InetSocketAddress(hostName, portNumber), 1000);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -221,6 +224,7 @@ public class Peer {
 				engine.clearBoard();
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
+				mainWindow.engine.isStarted = false;
 				// System.exit(1);
 			}
 		} catch (IOException e) {
@@ -235,6 +239,7 @@ public class Peer {
 				JOptionPane.showMessageDialog(null,
 						"Couldn't get I/O for the connection to " + hostName);
 				engine.clearBoard();
+				mainWindow.engine.isStarted = false;
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 
@@ -254,7 +259,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 500);
+					.connect(new InetSocketAddress(hostName, portNumber), 3000);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -287,13 +292,13 @@ public class Peer {
 
 	}
 
-	private boolean sendConfirmStart() {
+	private boolean sendConfirmStart() throws InterruptedException {
 		String send = "CONF ";
 
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 500);
+					.connect(new InetSocketAddress(hostName, portNumber), 1000);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -304,18 +309,19 @@ public class Peer {
 
 			echoSocket.close();
 			in.close();
-			
+
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
 
 			if (failedSend < 5) {
 				failedSend++;
-				sendGameOver();
+				sendConfirmStart();
 			} else {
 				failedSend = 0;
 				JOptionPane.showMessageDialog(null, "Don't know about host "
 						+ hostName);
 				engine.clearBoard();
+				mainWindow.engine.isStarted = false;
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 				return false;
@@ -326,13 +332,14 @@ public class Peer {
 					+ hostName);
 			if (failedSend < 5) {
 				failedSend++;
-				sendGameOver();
+				sendConfirmStart();
 			} else {
 				failedSend = 0;
 				engine.timer.stop();
 				JOptionPane.showMessageDialog(null,
 						"Couldn't get I/O for the connection to " + hostName);
 				engine.clearBoard();
+				mainWindow.engine.isStarted = false;
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 				return false;
@@ -342,13 +349,13 @@ public class Peer {
 		return true;
 	}
 
-	private void sendNoWant() {
+	private void sendNoWant() throws InterruptedException {
 		String send = "NOWANT ";
 
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 500);
+					.connect(new InetSocketAddress(hostName, portNumber), 1000);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -364,12 +371,13 @@ public class Peer {
 
 			if (failedSend < 5) {
 				failedSend++;
-				sendGameOver();
+				sendNoWant();
 			} else {
 				failedSend = 0;
 				JOptionPane.showMessageDialog(null, "Don't know about host "
 						+ hostName);
 				engine.clearBoard();
+				mainWindow.engine.isStarted = false;
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 				// System.exit(1);
@@ -379,29 +387,30 @@ public class Peer {
 					+ hostName);
 			if (failedSend < 5) {
 				failedSend++;
-				sendGameOver();
+				sendNoWant();
 			} else {
 				failedSend = 0;
 				engine.timer.stop();
 				JOptionPane.showMessageDialog(null,
 						"Couldn't get I/O for the connection to " + hostName);
 				engine.clearBoard();
+				mainWindow.engine.isStarted = false;
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 
 				// System.exit(1);
 			}
 		}
-		
+
 	}
 
-	public void sendGameOver() {
+	public void sendGameOver() throws InterruptedException {
 		String send = "GAMEOVER ";
 
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 500);
+					.connect(new InetSocketAddress(hostName, portNumber), 1000);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -416,6 +425,7 @@ public class Peer {
 			System.err.println("Don't know about host " + hostName);
 
 			if (failedSend < 5) {
+				
 				failedSend++;
 				sendGameOver();
 			} else {
@@ -423,6 +433,7 @@ public class Peer {
 				JOptionPane.showMessageDialog(null, "Don't know about host "
 						+ hostName);
 				engine.clearBoard();
+				mainWindow.engine.isStarted = false;
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 				// System.exit(1);
@@ -431,6 +442,7 @@ public class Peer {
 			System.err.println("Couldn't get I/O for the connection to "
 					+ hostName);
 			if (failedSend < 5) {
+				
 				failedSend++;
 				sendGameOver();
 			} else {
@@ -439,6 +451,7 @@ public class Peer {
 				JOptionPane.showMessageDialog(null,
 						"Couldn't get I/O for the connection to " + hostName);
 				engine.clearBoard();
+				mainWindow.engine.isStarted = false;
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 

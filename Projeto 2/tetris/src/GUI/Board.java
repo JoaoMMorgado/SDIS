@@ -102,7 +102,7 @@ Peer peer;
 
 				switch (keycode) {
 				case KeyEvent.VK_ENTER:
-
+					if (!engine.multiPlayer)
 					engine.pause();
 					break;
 				case KeyEvent.VK_LEFT:
