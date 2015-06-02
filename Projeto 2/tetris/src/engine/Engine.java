@@ -22,7 +22,7 @@ public class Engine implements ActionListener {
 	public boolean isFallingFinished = false;
 	public boolean isStarted = false;
 	boolean isPaused = false;
-	int numLinesRemoved = 0;
+	public int score = 0;
 	public int curX = 0;
 	public int curY = 0;
 	JLabel statusbar;
@@ -56,7 +56,7 @@ public class Engine implements ActionListener {
 	public void start() {
 		isStarted = true;
 		isFallingFinished = false;
-		numLinesRemoved = 0;
+		score = 0;
 		clearBoard();
 		newPiece();
 		timer.start();
@@ -72,11 +72,11 @@ public class Engine implements ActionListener {
 				isPaused = false;
 				timer.start();
 				mainWindow.sidePanel.scoreBar.setText(String
-						.valueOf(numLinesRemoved));
+						.valueOf(score));
 			}
 	}
 
-	public void dropDown() {
+	synchronized public void dropDown() {
 		int newY = curY;
 		while (newY > 0) {
 			if (!checkMove(curPiece, curX, newY - 1))
@@ -86,7 +86,7 @@ public class Engine implements ActionListener {
 		pieceDropped();
 	}
 
-	public void addOneLine() {
+	synchronized public void addOneLine() {
 		String[] clone = board;
 		for (int y = BoardHeight - 1; y > 0; y--) {
 			for (int x = 0; x < BoardWidth; x++) {
@@ -102,7 +102,7 @@ public class Engine implements ActionListener {
 
 	}
 
-	public void dropOneLine() {
+	synchronized public void dropOneLine() {
 		if (!checkMove(curPiece, curX, curY - 1))
 			pieceDropped();
 	}
@@ -112,7 +112,7 @@ public class Engine implements ActionListener {
 			board[i] = "NoShape";
 	}
 
-	private void pieceDropped() {
+	synchronized private void pieceDropped() {
 		for (int i = 0; i < 4; i++) {
 			int x = curX + curPiece.x(i);
 			int y = curY - curPiece.y(i);
@@ -143,9 +143,9 @@ public class Engine implements ActionListener {
 			curPiece.setShape("NoShape");
 			timer.stop();
 			isStarted = false;
+			mainWindow.peer.sendGameOver();
 			JOptionPane.showMessageDialog(null, "You Lost");
 			mainWindow.sidePanel.scoreBar.setText("game over");
-			mainWindow.peer.sendGameOver();
 			clearBoard();
 			curPiece.setShape("NoShape");
 			mainWindow.sidePanel.showPlayerList();
@@ -168,7 +168,7 @@ public class Engine implements ActionListener {
 		return true;
 	}
 
-	private void removeFullLines() {
+	synchronized private void removeFullLines() {
 		Vector<Integer> lines = new Vector<Integer>();
 		for (int y = BoardHeight - 1; y >= 0; y--) {
 			lines.add(y);
@@ -211,9 +211,9 @@ public class Engine implements ActionListener {
 			});
 			sendLineT.start();
 
-			numLinesRemoved += lines.size() * lines.size() * 100;
+			score += lines.size() * lines.size() * 100;
 			mainWindow.sidePanel.scoreBar.setText(String
-					.valueOf(numLinesRemoved));
+					.valueOf(score));
 			isFallingFinished = true;
 			curPiece.setShape("NoShape");
 		}

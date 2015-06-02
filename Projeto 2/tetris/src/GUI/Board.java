@@ -26,7 +26,6 @@ Peer peer;
 	Board(Engine engine,Peer peer){
 		this.engine = engine;
 		this.peer = peer;
-		peer.board = this;
 		addKeyListener(new Keyboard());
 		this.requestFocus();
 		timer = new Timer(20, this);

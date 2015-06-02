@@ -15,7 +15,7 @@ public class MainWindow extends JFrame {
 	private static final long serialVersionUID = -4271366833680464301L;
 
 	public Engine engine;
-	Board boardGraph;
+	public Board boardGraph;
 	public Peer peer;
 	public Client client;
 	public SidePanel sidePanel;
@@ -38,7 +38,7 @@ public class MainWindow extends JFrame {
 		getContentPane().add(boardGraph);
 
 		sidePanel = new SidePanel(this);
-		sidePanel.setBounds(312, 30, 130, 547);
+		sidePanel.setBounds(312, 30, 130, 576);
 		getContentPane().add(sidePanel);
 
 		setSize(458, 646);
@@ -49,7 +49,6 @@ public class MainWindow extends JFrame {
 
 				if (loggedIn) {
 					try {
-						System.out.println(sidePanel.txtUsername.getText());
 						client.logout(sidePanel.txtUsername.getText());
 					} catch (Exception e) {
 

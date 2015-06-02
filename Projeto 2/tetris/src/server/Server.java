@@ -49,6 +49,7 @@ public class Server {
 		httpServer.createContext("/server", handler);
 		httpServer.setExecutor(null);
 		httpServer.start();
+		
 	}
 
 	static class Handler implements HttpHandler, Serializable {
@@ -60,6 +61,10 @@ public class Server {
 		private HashMap<String, Integer> scores = new HashMap<String, Integer>();
 
 		private LinkedList<String> messages = new LinkedList<String>();
+		
+		public void cleanLoggedUsers() {
+			loggedUsers.clear();
+		}
 
 		public void handle(HttpExchange httpExchange) {
 			try {
@@ -217,7 +222,6 @@ public class Server {
 			else if (type.split("=")[0].toUpperCase().equals("IP")) {
 				response = getMyPublicIp(type.split("=")[1]);
 			} else if (type.split("=")[0].toUpperCase().equals("GET_SCORE")) {
-
 				TreeMap<String, Integer> sortedMap = SortByValue(scores);
 				response = sortedMap.toString();
 			} else if (type.split("=")[0].toUpperCase().equals("MESSAGES")) {

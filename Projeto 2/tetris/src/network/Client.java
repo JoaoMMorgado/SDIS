@@ -13,6 +13,7 @@ import java.util.Vector;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import javax.swing.JOptionPane;
 
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
@@ -28,8 +29,36 @@ public class Client {
 		URL = "http://" + ip + ":80/server";
 	}
 
-	public boolean sendMessage(String message, String username)
-			throws Exception {
+	public boolean sendScore(String username, int score) {
+
+		if (sendPostPut(
+				"score&username=" + username + "&" + "score="
+						+ Integer.toString(score), "post").equals("SUCCESS")) {
+			return true;
+		}
+
+		return false;
+	}
+
+	public String getScores() {
+		String scores = "";
+
+		StringBuffer message = sendGet("get_score");
+		message.deleteCharAt(0);
+		message.deleteCharAt(message.length() - 1);
+
+		String[] tempScores = message.toString().split(", ");
+
+		for (int i = 0; i < 10 && i < tempScores.length; i++) {
+			String token[] = tempScores[i].split("=");
+			scores += Integer.toString(i + 1) + ": " + token[0] + "  -  "
+					+ token[1] + "\n";
+		}
+
+		return scores;
+	}
+
+	public boolean sendMessage(String message, String username) {
 		if (sendPostPut(
 				"newmessage&username=" + username + "&" + "message=" + message,
 				"post").equals("SUCCESS")) {
@@ -38,7 +67,7 @@ public class Client {
 		return false;
 	}
 
-	public String getChatMessages() throws Exception {
+	public String getChatMessages() {
 		StringBuffer messages = sendGet("messages");
 
 		messages.deleteCharAt(0);
@@ -60,9 +89,8 @@ public class Client {
 			String passwordCheck) throws Exception {
 		String response = new String();
 		if (password.equals(passwordCheck))
-			response = sendPostPut("register&username="
-					+ username + "&password=" + encryptPassword(password),
-					"put");
+			response = sendPostPut("register&username=" + username
+					+ "&password=" + encryptPassword(password), "put");
 
 		if (!response.equals("SUCCESS"))
 			return false;
@@ -70,7 +98,7 @@ public class Client {
 			return true;
 	}
 
-	public boolean login(String username, String password) throws Exception {
+	public boolean login(String username, String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
 		if (sendPostPut(
 				"login&username=" + username + "&" + "password="
 						+ encryptPassword(password), "post").equals("SUCCESS")) {
@@ -79,11 +107,11 @@ public class Client {
 		return false;
 	}
 
-	public void logout(String username) throws Exception {
+	public void logout(String username) {
 		sendPostPut("logout&username=" + username, "post");
 	}
 
-	public Vector<String[]> getCurrentUsers() throws Exception {
+	public Vector<String[]> getCurrentUsers() {
 
 		Vector<String[]> users = new Vector<String[]>();
 
@@ -104,11 +132,11 @@ public class Client {
 		return users;
 	}
 
-	public String getMyIp(String username) throws Exception {
+	public String getMyIp(String username) {
 		return sendGet("IP=" + username).toString();
 	}
 
-	public boolean updateScore(String username, int score) throws Exception {
+	public boolean updateScore(String username, int score) {
 		if (sendPostPut(
 				"score&username=" + username + "&" + "score="
 						+ Integer.toString(score), "post").equals("SUCCESS")) {
@@ -139,75 +167,89 @@ public class Client {
 	}
 
 	// HTTP GET request
-	private StringBuffer sendGet(String type) throws Exception {
+	private StringBuffer sendGet(String type) {
 
-		URL obj = new URL(URL + "&" + type);
-		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+		try {
 
-		// optional default is GET
-		con.setRequestMethod("GET");
+			URL obj = new URL(URL + "&" + type);
+			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
-		int responseCode = con.getResponseCode();
-		System.out.println("\nSending 'GET' request to URL : " + URL);
-		System.out.println("Response Code : " + responseCode);
+			// optional default is GET
+			con.setRequestMethod("GET");
 
-		BufferedReader in = new BufferedReader(new InputStreamReader(
-				con.getInputStream()));
-		String inputLine;
-		StringBuffer response = new StringBuffer();
+			int responseCode = con.getResponseCode();
+			System.out.println("\nSending 'GET' request to URL : " + URL);
+			System.out.println("Response Code : " + responseCode);
 
-		while ((inputLine = in.readLine()) != null) {
-			response.append(inputLine);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					con.getInputStream()));
+			String inputLine;
+			StringBuffer response = new StringBuffer();
+
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+
+			// print result
+			System.out.println(decrypt(response.toString()));
+			return new StringBuffer(decrypt(response.toString()));
+
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(null, "Server is not running! :(");
+			System.err.println("server not running...");
 		}
-		in.close();
+		return null;
 
-		// print result
-		System.out.println(decrypt(response.toString()));
-
-		return new StringBuffer(decrypt(response.toString()));
 	}
 
 	// HTTP POST request
-	private String sendPostPut(String message, String type) throws Exception {
+	private String sendPostPut(String message, String type) {
+		try {
+			URL obj = new URL(URL);
+			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
-		URL obj = new URL(URL);
-		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+			// add request header
+			con.setRequestMethod(type.toUpperCase());
+			con.setRequestProperty("Content-Type",
+					"application/x-www-form-urlencoded");
+			con.setRequestProperty("Content-Length",
+					"" + Integer.toString(message.getBytes().length));
 
-		// add request header
-		con.setRequestMethod(type.toUpperCase());
-		con.setRequestProperty("Content-Type",
-				"application/x-www-form-urlencoded");
-		con.setRequestProperty("Content-Length",
-				"" + Integer.toString(message.getBytes().length));
+			// Send request
+			String encryptedMessage = encrypt(message);
 
-		// Send request
-		String encryptedMessage = encrypt(message);
+			con.setDoOutput(true);
+			DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+			wr.writeBytes(encryptedMessage);
+			wr.flush();
+			wr.close();
 
-		con.setDoOutput(true);
-		DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-		wr.writeBytes(encryptedMessage);
-		wr.flush();
-		wr.close();
+			int responseCode = con.getResponseCode();
+			System.out.println("\nSending request to URL : " + URL);
+			System.out.println("Post parameters : " + message);
+			System.out.println("Response Code : " + responseCode);
 
-		int responseCode = con.getResponseCode();
-		System.out.println("\nSending request to URL : " + URL);
-		System.out.println("Post parameters : " + message);
-		System.out.println("Response Code : " + responseCode);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					con.getInputStream()));
+			String inputLine;
+			StringBuffer response = new StringBuffer();
 
-		BufferedReader in = new BufferedReader(new InputStreamReader(
-				con.getInputStream()));
-		String inputLine;
-		StringBuffer response = new StringBuffer();
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
 
-		while ((inputLine = in.readLine()) != null) {
-			response.append(inputLine);
+			// print result
+			System.out.println(decrypt(response.toString()));
+
+			return decrypt(response.toString());
+
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(null, "Server is not running! :(");
+			System.err.println("server not running...");
 		}
-		in.close();
-
-		// print result
-		System.out.println(decrypt(response.toString()));
-
-		return decrypt(response.toString());
+		return null;
 	}
 
 	private String encryptPassword(String password)

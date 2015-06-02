@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -13,18 +14,17 @@ import java.net.UnknownHostException;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
-import GUI.Board;
 import GUI.MainWindow;
 import engine.Engine;
 
 public class Peer {
 	Engine engine;
-	public Board board;
 	String hostName;
 	MainWindow mainWindow;
 	int portNumber = 8000;
 	int failedSend = 0;
 	boolean timeout = false;
+	public Thread peerT;
 
 	public Peer(Engine engine, MainWindow mainWindow) {
 		this.engine = engine;
@@ -33,13 +33,16 @@ public class Peer {
 	}
 
 	public void start() {
-		Thread peerT = new Thread(new Runnable() {
+		peerT = new Thread(new Runnable() {
 
 			public void run() {
 				try {
 					startServer();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
+
+					e.printStackTrace();
+				} catch (Exception e) {
+
 					e.printStackTrace();
 				}
 
@@ -48,7 +51,7 @@ public class Peer {
 		peerT.start();
 	}
 
-	public void startServer() throws IOException {
+	public void startServer() throws Exception {
 
 		System.out.println("Peer started");
 
@@ -81,14 +84,16 @@ public class Peer {
 
 	}
 
-	public void processInput(String[] tokens) throws IOException {
+	public void processInput(String[] tokens) throws Exception {
 		switch (tokens[0]) {
 		case "NOWANT":
 			JOptionPane.showMessageDialog(null, "User dont want to play!");
 			mainWindow.sidePanel.showPlayerList();
+			mainWindow.sidePanel.timer.stop();
 			break;
 		case "CONF":
 			mainWindow.sidePanel.showScoreMenu();
+			mainWindow.sidePanel.timer.stop();
 			engine.start();
 			break;
 		case "PLAYING":
@@ -102,8 +107,14 @@ public class Peer {
 			}
 			break;
 		case "GAMEOVER":
+			mainWindow.client.sendScore(
+					mainWindow.sidePanel.txtUsername.getText(),
+					mainWindow.engine.score);
+			mainWindow.engine.isStarted = false;
 			engine.timer.stop();
-			JOptionPane.showMessageDialog(null, "You Won");
+			JOptionPane.showMessageDialog(null,
+					"You won with " + mainWindow.engine.score + " points!\n\n"
+							+ mainWindow.client.getScores());
 			engine.clearBoard();
 			engine.curPiece.setShape("NoShape");
 			mainWindow.sidePanel.showPlayerList();
@@ -127,18 +138,24 @@ public class Peer {
 
 				if (!timeout)
 					if (reply == JOptionPane.YES_OPTION) {
+						timer.stop();
+
 						mainWindow.sidePanel.nextPieceLabel.setVisible(true);
 						mainWindow.sidePanel.nextPieceG.setVisible(true);
-
+						mainWindow.boardGraph.requestFocus();
+						mainWindow.sidePanel.chatButton.setVisible(false);
 						if (sendConfirmStart()) {
-
 							mainWindow.sidePanel.removePlayerList();
 							engine.start();
-							board.requestFocus();
+
 						}
 					} else {
 						sendNoWant();
+
 					}
+				else
+					JOptionPane.showMessageDialog(null, "Invitation Expired");
+
 			} else {
 				sendAlreadyPlaying(tokens[1]);
 			}
@@ -149,15 +166,20 @@ public class Peer {
 	private void sendAlreadyPlaying(String ip) {
 		String send = "PLAYING ";
 
-		try (Socket echoSocket = new Socket(ip, portNumber);
-				PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
-						true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(
-						echoSocket.getInputStream()));
-				BufferedReader stdIn = new BufferedReader(
-						new InputStreamReader(System.in))) {
-			echoSocket.setSoTimeout(200);
+		try {
+			Socket echoSocket = new Socket();
+			echoSocket
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
+
+			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
+					true);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					echoSocket.getInputStream()));
+
 			out.println(send);
+
+			echoSocket.close();
+			in.close();
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
 			// System.exit(1);
@@ -171,21 +193,25 @@ public class Peer {
 
 	public void sendLine(int numLines) throws IOException {
 		String send = "ADDLINE " + numLines + " ";
-		try (Socket echoSocket = new Socket(hostName, portNumber);
 
-				PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
-						true);
+		try {
+			Socket echoSocket = new Socket();
+			echoSocket
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
 
-				BufferedReader in = new BufferedReader(new InputStreamReader(
-						echoSocket.getInputStream()));
-				BufferedReader stdIn = new BufferedReader(
-						new InputStreamReader(System.in))) {
-			echoSocket.setSoTimeout(200);
+			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
+					true);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					echoSocket.getInputStream()));
+
 			out.println(send);
+
+			echoSocket.close();
+			in.close();
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
 
-			if (failedSend < 2) {
+			if (failedSend < 5) {
 				failedSend++;
 				sendLine(numLines);
 			} else {
@@ -200,7 +226,7 @@ public class Peer {
 		} catch (IOException e) {
 			System.err.println("Couldn't get I/O for the connection to "
 					+ hostName);
-			if (failedSend < 2) {
+			if (failedSend < 5) {
 				failedSend++;
 				sendLine(numLines);
 			} else {
@@ -225,27 +251,35 @@ public class Peer {
 		String send = "START " + myIP + " "
 				+ mainWindow.sidePanel.txtUsername.getText() + " ";
 
-		try (Socket echoSocket = new Socket(hostName, portNumber);
+		try {
+			Socket echoSocket = new Socket();
+			echoSocket
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
 
-				PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
-						true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(
-						echoSocket.getInputStream()));
-				BufferedReader stdIn = new BufferedReader(
-						new InputStreamReader(System.in))) {
-			echoSocket.setSoTimeout(200);
+			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
+					true);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					echoSocket.getInputStream()));
+
 			out.println(send);
+
+			echoSocket.close();
+			in.close();
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
+			mainWindow.sidePanel.timer.stop();
 			JOptionPane.showMessageDialog(null, "Don't know about host "
 					+ hostName);
+
 			mainWindow.sidePanel.showPlayerList();
 			return false;
 		} catch (IOException e) {
+			mainWindow.sidePanel.timer.stop();
 			System.err.println("Couldn't get I/O for the connection to "
 					+ hostName);
 			JOptionPane.showMessageDialog(null,
 					"Couldn't get I/O for the connection to " + hostName);
+
 			mainWindow.sidePanel.showPlayerList();
 			return false;
 		}
@@ -256,73 +290,160 @@ public class Peer {
 	private boolean sendConfirmStart() {
 		String send = "CONF ";
 
-		try (Socket echoSocket = new Socket(hostName, portNumber);
-				PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
-						true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(
-						echoSocket.getInputStream()));
-				BufferedReader stdIn = new BufferedReader(
-						new InputStreamReader(System.in))) {
-			echoSocket.setSoTimeout(200);
+		try {
+			Socket echoSocket = new Socket();
+			echoSocket
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
+
+			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
+					true);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					echoSocket.getInputStream()));
+
 			out.println(send);
+
+			echoSocket.close();
+			in.close();
+			
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
-			// System.exit(1);
-			return false;
+
+			if (failedSend < 5) {
+				failedSend++;
+				sendGameOver();
+			} else {
+				failedSend = 0;
+				JOptionPane.showMessageDialog(null, "Don't know about host "
+						+ hostName);
+				engine.clearBoard();
+				engine.curPiece.setShape("NoShape");
+				mainWindow.sidePanel.showPlayerList();
+				return false;
+				// System.exit(1);
+			}
 		} catch (IOException e) {
 			System.err.println("Couldn't get I/O for the connection to "
 					+ hostName);
-			// System.exit(1);
-			return false;
+			if (failedSend < 5) {
+				failedSend++;
+				sendGameOver();
+			} else {
+				failedSend = 0;
+				engine.timer.stop();
+				JOptionPane.showMessageDialog(null,
+						"Couldn't get I/O for the connection to " + hostName);
+				engine.clearBoard();
+				engine.curPiece.setShape("NoShape");
+				mainWindow.sidePanel.showPlayerList();
+				return false;
+				// System.exit(1);
+			}
 		}
 		return true;
 	}
 
-	private boolean sendNoWant() {
+	private void sendNoWant() {
 		String send = "NOWANT ";
 
-		try (Socket echoSocket = new Socket(hostName, portNumber);
-				PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
-						true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(
-						echoSocket.getInputStream()));
-				BufferedReader stdIn = new BufferedReader(
-						new InputStreamReader(System.in))) {
-			echoSocket.setSoTimeout(200);
+		try {
+			Socket echoSocket = new Socket();
+			echoSocket
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
+
+			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
+					true);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					echoSocket.getInputStream()));
+
 			out.println(send);
+
+			echoSocket.close();
+			in.close();
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
-			// System.exit(1);
-			return false;
+
+			if (failedSend < 5) {
+				failedSend++;
+				sendGameOver();
+			} else {
+				failedSend = 0;
+				JOptionPane.showMessageDialog(null, "Don't know about host "
+						+ hostName);
+				engine.clearBoard();
+				engine.curPiece.setShape("NoShape");
+				mainWindow.sidePanel.showPlayerList();
+				// System.exit(1);
+			}
 		} catch (IOException e) {
 			System.err.println("Couldn't get I/O for the connection to "
 					+ hostName);
-			// System.exit(1);
-			return false;
+			if (failedSend < 5) {
+				failedSend++;
+				sendGameOver();
+			} else {
+				failedSend = 0;
+				engine.timer.stop();
+				JOptionPane.showMessageDialog(null,
+						"Couldn't get I/O for the connection to " + hostName);
+				engine.clearBoard();
+				engine.curPiece.setShape("NoShape");
+				mainWindow.sidePanel.showPlayerList();
+
+				// System.exit(1);
+			}
 		}
-		return true;
+		
 	}
 
 	public void sendGameOver() {
-		String send = "GAMEOVER";
+		String send = "GAMEOVER ";
 
-		try (Socket echoSocket = new Socket(hostName, portNumber);
-				PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
-						true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(
-						echoSocket.getInputStream()));
-				BufferedReader stdIn = new BufferedReader(
-						new InputStreamReader(System.in))) {
-			echoSocket.setSoTimeout(200);
+		try {
+			Socket echoSocket = new Socket();
+			echoSocket
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
+
+			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
+					true);
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					echoSocket.getInputStream()));
+
 			out.println(send);
-			System.out.println(in.readLine());
+
+			echoSocket.close();
+			in.close();
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
-			// System.exit(1);
+
+			if (failedSend < 5) {
+				failedSend++;
+				sendGameOver();
+			} else {
+				failedSend = 0;
+				JOptionPane.showMessageDialog(null, "Don't know about host "
+						+ hostName);
+				engine.clearBoard();
+				engine.curPiece.setShape("NoShape");
+				mainWindow.sidePanel.showPlayerList();
+				// System.exit(1);
+			}
 		} catch (IOException e) {
 			System.err.println("Couldn't get I/O for the connection to "
 					+ hostName);
-			// System.exit(1);
+			if (failedSend < 5) {
+				failedSend++;
+				sendGameOver();
+			} else {
+				failedSend = 0;
+				engine.timer.stop();
+				JOptionPane.showMessageDialog(null,
+						"Couldn't get I/O for the connection to " + hostName);
+				engine.clearBoard();
+				engine.curPiece.setShape("NoShape");
+				mainWindow.sidePanel.showPlayerList();
+
+				// System.exit(1);
+			}
 		}
 	}
 }
