@@ -2,10 +2,14 @@ package network;
 
 import java.awt.BorderLayout;
 import java.awt.Desktop;
-import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -14,6 +18,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import server.Server;
 import twitter4j.StatusUpdate;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -37,41 +42,26 @@ public class TwitterPost extends JFrame {
 
 	private AcessTokens acessTokens;
 
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					TwitterPost frame = new TwitterPost();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
+	private boolean connected;
+
+	public TwitterPost() throws IOException, ClassNotFoundException,
+			TwitterException, URISyntaxException {
+		File file = new File("twitter.properties");
+		if (file.exists()) {
+			FileInputStream input = new FileInputStream("twitter.properties");
+			ObjectInputStream objectInput = new ObjectInputStream(input);
+			acessTokens = (AcessTokens) objectInput.readObject();
+			objectInput.close();
+			connected = true;
+		} else {
+			acessTokens = new AcessTokens();
+			connected = false;
+		}
 	}
 
-	/**
-	 * Create the frame.
-	 * 
-	 * @throws TwitterException
-	 * @throws URISyntaxException
-	 * @throws IOException
-	 */
-	public TwitterPost() {
-		//load do ficheiro aqui if else
-		acessTokens = new AcessTokens();
-
-		if (acessTokens.getAccessToken().equals("")
-				|| acessTokens.getAccessTokenSecret().equals(""))
-			try {
-				showDialog();
-			} catch (TwitterException | IOException | URISyntaxException e) {
-				e.printStackTrace();
-			}
-	}
-
-	public void showDialog() throws TwitterException, IOException,
+	public void connectToTwitter() throws TwitterException, IOException,
 			URISyntaxException {
+
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 200, 121);
 		contentPane = new JPanel();
@@ -102,14 +92,21 @@ public class TwitterPost extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (getAcessTokens(textField.getText())) {
-					JOptionPane.showMessageDialog(null, "monweoinw");
+					JOptionPane.showMessageDialog(null, "Sucess!");
+					FileOutputStream fileOut;
+					try {
+						fileOut = new FileOutputStream("database.db");
+						ObjectOutputStream out = new ObjectOutputStream(fileOut);
+						out.writeObject(Server.getHandler());
+						out.close();
+						fileOut.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+
 				}
 			}
 		});
-	}
-
-	public void setAcessTokens(AcessTokens acessTokens) {
-		this.acessTokens = acessTokens;
 	}
 
 	private boolean getAcessTokens(String pin) {
@@ -121,21 +118,14 @@ public class TwitterPost extends JFrame {
 				acessTokens.setAccessToken(accessToken.getToken());
 				acessTokens.setAccessTokenSecret(accessToken.getTokenSecret());
 			} else
-				JOptionPane.showMessageDialog(null, "Enter valid pin");
+				JOptionPane.showMessageDialog(null, "Enter valid pin!");
 		} catch (TwitterException e) {
 			if (401 == e.getStatusCode()) {
-				System.out.println("Unable to get the access token.");
+				JOptionPane.showMessageDialog(null, "Unable to get the access token.");
 			} else {
 				e.printStackTrace();
 			}
 		}
-
-		try {
-			postToTwitter("cenas teste");
-		} catch (TwitterException e) {
-			e.printStackTrace();
-		}
-
 		return true;
 	}
 
@@ -145,6 +135,10 @@ public class TwitterPost extends JFrame {
 		twitter.updateStatus(statusUpdate);
 
 		return true;
+	}
+	
+	public boolean isConnected() {
+		return connected;
 	}
 
 }

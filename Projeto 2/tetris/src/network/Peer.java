@@ -141,7 +141,7 @@ public class Peer {
 				if (!timeout)
 					if (reply == JOptionPane.YES_OPTION) {
 						timer.stop();
-						
+
 						mainWindow.sidePanel.nextPieceLabel.setVisible(true);
 						mainWindow.sidePanel.nextPieceG.setVisible(true);
 						mainWindow.boardGraph.requestFocus();
@@ -156,9 +156,10 @@ public class Peer {
 						sendNoWant();
 
 					}
-				else
+				else {
 					JOptionPane.showMessageDialog(null, "Invitation Expired");
-
+					timeout = false;
+				}
 			} else {
 				sendAlreadyPlaying(tokens[1]);
 			}
@@ -172,7 +173,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 1000);
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -200,7 +201,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 1000);
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -216,6 +217,11 @@ public class Peer {
 
 			if (failedSend < 5) {
 				failedSend++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				sendLine(numLines);
 			} else {
 				failedSend = 0;
@@ -232,6 +238,11 @@ public class Peer {
 					+ hostName);
 			if (failedSend < 5) {
 				failedSend++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				sendLine(numLines);
 			} else {
 				failedSend = 0;
@@ -258,8 +269,8 @@ public class Peer {
 
 		try {
 			Socket echoSocket = new Socket();
-			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 3000);
+			echoSocket.connect(new InetSocketAddress(hostName, portNumber),
+					3000);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -298,7 +309,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 1000);
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -315,6 +326,11 @@ public class Peer {
 
 			if (failedSend < 5) {
 				failedSend++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				sendConfirmStart();
 			} else {
 				failedSend = 0;
@@ -332,6 +348,11 @@ public class Peer {
 					+ hostName);
 			if (failedSend < 5) {
 				failedSend++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				sendConfirmStart();
 			} else {
 				failedSend = 0;
@@ -355,7 +376,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 1000);
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -371,6 +392,11 @@ public class Peer {
 
 			if (failedSend < 5) {
 				failedSend++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				sendNoWant();
 			} else {
 				failedSend = 0;
@@ -387,6 +413,11 @@ public class Peer {
 					+ hostName);
 			if (failedSend < 5) {
 				failedSend++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				sendNoWant();
 			} else {
 				failedSend = 0;
@@ -410,7 +441,7 @@ public class Peer {
 		try {
 			Socket echoSocket = new Socket();
 			echoSocket
-					.connect(new InetSocketAddress(hostName, portNumber), 1000);
+					.connect(new InetSocketAddress(hostName, portNumber), 500);
 
 			PrintWriter out = new PrintWriter(echoSocket.getOutputStream(),
 					true);
@@ -425,7 +456,11 @@ public class Peer {
 			System.err.println("Don't know about host " + hostName);
 
 			if (failedSend < 5) {
-				
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				failedSend++;
 				sendGameOver();
 			} else {
@@ -442,8 +477,12 @@ public class Peer {
 			System.err.println("Couldn't get I/O for the connection to "
 					+ hostName);
 			if (failedSend < 5) {
-				
 				failedSend++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 				sendGameOver();
 			} else {
 				failedSend = 0;
@@ -455,7 +494,6 @@ public class Peer {
 				engine.curPiece.setShape("NoShape");
 				mainWindow.sidePanel.showPlayerList();
 
-				// System.exit(1);
 			}
 		}
 	}

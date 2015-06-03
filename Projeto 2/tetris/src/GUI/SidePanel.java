@@ -245,12 +245,12 @@ public class SidePanel extends JPanel {
 		add(chatButton);
 		chatButton.setVisible(false);
 
-		startButton = new JButton("Start Multiplayer");
-		startButton.setBounds(7, 513, 115, 23);
+		startButton = new JButton("Multiplayer");
+		startButton.setBounds(7, 470, 115, 23);
 		add(startButton);
 		startButton.setVisible(false);
-		btnStartAlone = new JButton("Start Alone");
-		btnStartAlone.setBounds(7, 470, 115, 23);
+		btnStartAlone = new JButton("Alone");
+		btnStartAlone.setBounds(7, 513, 115, 23);
 		add(btnStartAlone);
 		btnStartAlone.setVisible(false);
 		setButtonListeners();

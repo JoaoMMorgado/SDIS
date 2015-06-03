@@ -54,30 +54,33 @@ public class Client {
 
 		if (multiplayer) {
 			StringBuffer message = sendGet("GET_MULT_SCORE");
-			message.deleteCharAt(0);
-			message.deleteCharAt(message.length() - 1);
+			if (!message.toString().equalsIgnoreCase("{}")) {
+				message.deleteCharAt(0);
+				message.deleteCharAt(message.length() - 1);
 
-			String[] tempScores = message.toString().split(", ");
+				String[] tempScores = message.toString().split(", ");
 
-			for (int i = 0; i < 10 && i < tempScores.length; i++) {
-				String token[] = tempScores[i].split("=");
-				scores += Integer.toString(i + 1) + ": " + token[0] + "  -  "
-						+ token[1] + "\n";
+				for (int i = 0; i < 10 && i < tempScores.length; i++) {
+					String token[] = tempScores[i].split("=");
+					scores += Integer.toString(i + 1) + ": " + token[0]
+							+ "  -  " + token[1] + "\n";
+				}
 			}
 		} else {
 			StringBuffer message = sendGet("GET_SINGLE_SCORE");
-			message.deleteCharAt(0);
-			message.deleteCharAt(message.length() - 1);
+			if (!message.toString().equalsIgnoreCase("{}")) {
+				message.deleteCharAt(0);
+				message.deleteCharAt(message.length() - 1);
 
-			String[] tempScores = message.toString().split(", ");
+				String[] tempScores = message.toString().split(", ");
 
-			for (int i = 0; i < 10 && i < tempScores.length; i++) {
-				String token[] = tempScores[i].split("=");
-				scores += Integer.toString(i + 1) + ": " + token[0] + "  -  "
-						+ token[1] + "\n";
+				for (int i = 0; i < 10 && i < tempScores.length; i++) {
+					String token[] = tempScores[i].split("=");
+					scores += Integer.toString(i + 1) + ": " + token[0]
+							+ "  -  " + token[1] + "\n";
+				}
 			}
 		}
-
 		return scores;
 	}
 
@@ -220,8 +223,10 @@ public class Client {
 			return new StringBuffer(decrypt(response.toString()));
 
 		} catch (Exception e) {
-			JOptionPane.showMessageDialog(null, "Server is not running! :(");
 			System.err.println("server not running...");
+			JOptionPane.showMessageDialog(null, "Cannot reach Server! :( \n\n Open game again and check IP");
+			System.exit(0);
+			
 		}
 		return null;
 
@@ -270,8 +275,9 @@ public class Client {
 			return decrypt(response.toString());
 
 		} catch (Exception e) {
-			JOptionPane.showMessageDialog(null, "Server is not running! :(");
 			System.err.println("server not running...");
+			JOptionPane.showMessageDialog(null, "Cannot reach Server! :( \n\n Open game again and check IP");
+			System.exit(0);
 		}
 		return "FAILED";
 	}
