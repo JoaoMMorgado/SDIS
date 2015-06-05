@@ -10,7 +10,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -25,25 +24,24 @@ public class SidePanel extends JPanel {
 	private static final long serialVersionUID = -3413635382022654561L;
 	public Timer timer;
 	MainWindow mainWindow;
-	JLabel lblScore;
+	private JLabel lblScore;
 	public JLabel scoreBar;
 	public JTextField txtUsername;
 	private JTextField txtPassword;
 	private JTextField txtUsernameRegister;
 	private JTextField txtPasswordRegister;
 	private JTextField txtRegisterConfirm;
-	JButton btnLogin;
-	JButton startButton;
-	JButton btnStartAlone;
-	JLabel lblLogin;
-	JFrame players;
-	JLabel lblUsername;
-	JLabel lblPassword;
-	JLabel lblUsername_1;
-	JLabel lblConfirm;
-	JLabel lblPassword_1;
-	JLabel lblRegister;
-	JButton btnRegister;
+	private JButton btnLogin;
+	private JButton startButton;
+	private JButton btnStartAlone;
+	private JLabel lblLogin;
+	private JLabel lblUsername;
+	private JLabel lblPassword;
+	private JLabel lblUsername_1;
+	private JLabel lblConfirm;
+	private JLabel lblPassword_1;
+	private JLabel lblRegister;
+	private JButton btnRegister;
 	public JLabel nextPieceLabel;
 	public JButton chatButton;
 	public NextPieceGraph nextPieceG;
@@ -151,18 +149,6 @@ public class SidePanel extends JPanel {
 		initializePlayerList();
 	}
 
-	private void removeRegister() {
-		txtUsernameRegister.setVisible(false);
-		txtPasswordRegister.setVisible(false);
-		txtRegisterConfirm.setVisible(false);
-		lblUsername_1.setVisible(false);
-		lblConfirm.setVisible(false);
-		lblPassword_1.setVisible(false);
-		lblRegister.setVisible(false);
-		btnRegister.setVisible(false);
-
-	}
-
 	protected void login() throws HeadlessException, Exception {
 		String response = mainWindow.client.login(txtUsername.getText(),
 				txtPassword.getText());
@@ -223,6 +209,7 @@ public class SidePanel extends JPanel {
 	}
 
 	private void removeLogin() {
+
 		txtUsername.setVisible(false);
 		txtPassword.setVisible(false);
 		btnLogin.setVisible(false);
@@ -231,7 +218,19 @@ public class SidePanel extends JPanel {
 		lblPassword.setVisible(false);
 
 	}
+	
+	private void removeRegister() {
+		txtUsernameRegister.setVisible(false);
+		txtPasswordRegister.setVisible(false);
+		txtRegisterConfirm.setVisible(false);
+		lblUsername_1.setVisible(false);
+		lblConfirm.setVisible(false);
+		lblPassword_1.setVisible(false);
+		lblRegister.setVisible(false);
+		btnRegister.setVisible(false);
 
+	}
+	
 	void initializePlayerList() {
 
 		lista = new JList<String>();
@@ -245,12 +244,12 @@ public class SidePanel extends JPanel {
 		add(chatButton);
 		chatButton.setVisible(false);
 
-		startButton = new JButton("Multiplayer");
+		startButton = new JButton("MultiPlayer");
 		startButton.setBounds(7, 470, 115, 23);
 		add(startButton);
 		startButton.setVisible(false);
-		btnStartAlone = new JButton("Alone");
-		btnStartAlone.setBounds(7, 513, 115, 23);
+		btnStartAlone = new JButton("SinglePlayer");
+		btnStartAlone.setBounds(7, 509, 115, 23);
 		add(btnStartAlone);
 		btnStartAlone.setVisible(false);
 		setButtonListeners();
@@ -280,7 +279,7 @@ public class SidePanel extends JPanel {
 					timer.start();
 					try {
 						mainWindow.peer.sendStart(onlineUsers.get(lista
-								.getSelectedIndex())[1]);
+								.getSelectedIndex())[1],0);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}

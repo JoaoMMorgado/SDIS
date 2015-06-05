@@ -2,10 +2,8 @@ package engine;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.util.Vector;
 
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
@@ -24,10 +22,9 @@ public class Engine implements ActionListener {
 	public int score = 0;
 	public int curX = 0;
 	public int curY = 0;
-	JLabel statusbar;
 	public Shape curPiece;
 	public Shape nextPiece;
-	String[] board;
+	private String[] board;
 
 	public Engine(MainWindow mainwindow) {
 		multiPlayer = false;
@@ -142,24 +139,20 @@ public class Engine implements ActionListener {
 			curPiece.setShape("NoShape");
 			timer.stop();
 			isStarted = false;
-			try {
-				if (multiPlayer)
-					mainWindow.peer.sendGameOver();
-				else
-					mainWindow.client.sendScore(
-							mainWindow.sidePanel.txtUsername.getText(), score,
-							false);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			if (multiPlayer)
+				mainWindow.peer.sendGameOver(0);
+			else
+				mainWindow.client.sendScore(
+						mainWindow.sidePanel.txtUsername.getText(), score,
+						false);
 			
 			
 			JOptionPane.showMessageDialog(null, "Game Over "
 					+ mainWindow.engine.score + " points!\n\n"
 					+ mainWindow.client.getScores(multiPlayer));
 			mainWindow.sidePanel.scoreBar.setText("game over");
-			
+			if(!multiPlayer)
+				mainWindow.twitter.postToTwitter(score);
 			clearBoard();
 			curPiece.setShape("NoShape");
 			mainWindow.sidePanel.showPlayerList();
@@ -213,14 +206,8 @@ public class Engine implements ActionListener {
 			Thread sendLineT = new Thread(new Runnable() {
 
 				public void run() {
-					try {
-						if (multiPlayer)
-							mainWindow.peer.sendLine(numLines);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-
+					if (multiPlayer)
+						mainWindow.peer.sendLine(numLines,0);
 				}
 			});
 			sendLineT.start();

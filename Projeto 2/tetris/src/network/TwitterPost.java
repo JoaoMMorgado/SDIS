@@ -18,7 +18,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-import server.Server;
 import twitter4j.StatusUpdate;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -33,34 +32,46 @@ import javax.swing.SwingConstants;
 
 public class TwitterPost extends JFrame {
 
+	// TOKENS DA NOSSA APP NO TWITTER
+	private String consumerKey = "xfjotua1FHVhWqq23DdRqfJom";
+	private String consumerSecret = "OOZjuMWfXaXxLTqv3kbMt39iwTf6MTewIyvVEVTbkenl6iVjTR";
+
 	private static final long serialVersionUID = 2203462030517552618L;
 	private JPanel contentPane;
 	private JTextField textField;
 
-	private RequestToken requestToken;
+	private AccessTokens accessTokens;
+
 	private Twitter twitter;
 
-	private AcessTokens acessTokens;
-
-	private boolean connected;
+	private boolean tokensLoaded;
 
 	public TwitterPost() throws IOException, ClassNotFoundException,
 			TwitterException, URISyntaxException {
-		File file = new File("twitter.properties");
+
+		TwitterFactory twitterFactory = new TwitterFactory();
+		twitter = twitterFactory.getInstance();
+		twitter.setOAuthConsumer(consumerKey, consumerSecret);
+
+		File file = new File("twitter.tk");
 		if (file.exists()) {
-			FileInputStream input = new FileInputStream("twitter.properties");
+			FileInputStream input = new FileInputStream("twitter.tk");
 			ObjectInputStream objectInput = new ObjectInputStream(input);
-			acessTokens = (AcessTokens) objectInput.readObject();
+			accessTokens = (AccessTokens) objectInput.readObject();
 			objectInput.close();
-			connected = true;
+
+			tokensLoaded = true;
+
+			twitter.setOAuthAccessToken(new AccessToken(accessTokens
+					.getAccessToken(), accessTokens.getAccessTokenSecret()));
 		} else {
-			acessTokens = new AcessTokens();
-			connected = false;
+			accessTokens = new AccessTokens();
+			tokensLoaded = false;
 		}
 	}
 
-	public void connectToTwitter() throws TwitterException, IOException,
-			URISyntaxException {
+	public void connectToTwitter(final int score) throws TwitterException,
+			IOException, URISyntaxException {
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 200, 121);
@@ -68,6 +79,7 @@ public class TwitterPost extends JFrame {
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
 		setContentPane(contentPane);
+		setVisible(true);
 
 		JLabel lblGetAcessTokens = new JLabel("Insert PIN");
 		lblGetAcessTokens.setHorizontalAlignment(SwingConstants.CENTER);
@@ -78,10 +90,7 @@ public class TwitterPost extends JFrame {
 		contentPane.add(textField, BorderLayout.CENTER);
 		textField.setColumns(10);
 
-		twitter = new TwitterFactory().getInstance();
-		twitter.setOAuthConsumer(AcessTokens.consumerKey,
-				AcessTokens.consumerSecret);
-		requestToken = twitter.getOAuthRequestToken();
+		final RequestToken requestToken = twitter.getOAuthRequestToken();
 		Desktop.getDesktop()
 				.browse(new URI(requestToken.getAuthorizationURL()));
 
@@ -91,54 +100,89 @@ public class TwitterPost extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (getAcessTokens(textField.getText())) {
-					JOptionPane.showMessageDialog(null, "Sucess!");
-					FileOutputStream fileOut;
+				String pin = textField.getText();
+
+				if (pin.length() > 0) {
 					try {
-						fileOut = new FileOutputStream("database.db");
+						AccessToken token = twitter.getOAuthAccessToken(
+								requestToken, pin);
+
+						accessTokens.setAccessToken(token.getToken());
+						accessTokens.setAccessTokenSecret(token
+								.getTokenSecret());
+
+						twitter.setOAuthAccessToken(token);
+						tokensLoaded = true;
+
+						postTweet("I MADE " + score
+								+ " POINTS AT TETRIS MASTER!!!! :D ");
+
+					} catch (TwitterException e1) {
+						if (401 == e1.getStatusCode()) {
+							System.out
+									.println("Unable to get the access token.");
+						} else {
+							e1.printStackTrace();
+						}
+					}
+
+					try {
+						FileOutputStream fileOut = new FileOutputStream(
+								"twitter.tk");
 						ObjectOutputStream out = new ObjectOutputStream(fileOut);
-						out.writeObject(Server.getHandler());
+						out.writeObject(accessTokens);
 						out.close();
 						fileOut.close();
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
 
+					dispose();
 				}
+
 			}
 		});
 	}
 
-	private boolean getAcessTokens(String pin) {
-
-		AccessToken accessToken = null;
-		try {
-			if (pin.length() > 0) {
-				accessToken = twitter.getOAuthAccessToken(requestToken, pin);
-				acessTokens.setAccessToken(accessToken.getToken());
-				acessTokens.setAccessTokenSecret(accessToken.getTokenSecret());
-			} else
-				JOptionPane.showMessageDialog(null, "Enter valid pin!");
-		} catch (TwitterException e) {
-			if (401 == e.getStatusCode()) {
-				JOptionPane.showMessageDialog(null, "Unable to get the access token.");
-			} else {
-				e.printStackTrace();
-			}
-		}
-		return true;
-	}
-
-	public boolean postToTwitter(String message) throws TwitterException {
+	public boolean postTweet(String message) {
 
 		StatusUpdate statusUpdate = new StatusUpdate(message);
-		twitter.updateStatus(statusUpdate);
+		try {
+			twitter.updateStatus(statusUpdate);
+		} catch (TwitterException e) {
+			if (e.getStatusCode() == 403) {
 
+				JOptionPane.showMessageDialog(null, "Cannot post to Twitter due to update limits by Twitter!");
+				e.printStackTrace();
+				return false;
+			}
+			else {
+				JOptionPane.showMessageDialog(null, "Something went wrong!");
+				e.printStackTrace();
+				return false;
+			}
+		}
+		JOptionPane.showMessageDialog(null, "Success!");
 		return true;
 	}
-	
-	public boolean isConnected() {
-		return connected;
+
+	public void postToTwitter(int score) {
+		int reply = JOptionPane.showConfirmDialog(null,
+				"Post score to Twitter?", "Twitter", JOptionPane.YES_NO_OPTION);
+
+		if (reply == JOptionPane.YES_OPTION) {
+			try {
+				if (!tokensLoaded)
+					connectToTwitter(score);
+				else
+					postTweet("I MADE " + score
+							+ " POINTS AT TETRIS MASTER!!!! :D ");
+			} catch (IOException | TwitterException | URISyntaxException e) {
+				e.printStackTrace();
+			}
+
+		}
+
 	}
 
 }

@@ -4,11 +4,15 @@ import javax.swing.JFrame;
 import javax.swing.JButton;
 import javax.swing.border.LineBorder;
 
+import twitter4j.TwitterException;
 import network.Client;
 import network.Peer;
+import network.TwitterPost;
 import engine.Engine;
 
 import java.awt.Color;
+import java.io.IOException;
+import java.net.URISyntaxException;
 
 public class MainWindow extends JFrame {
 
@@ -22,8 +26,17 @@ public class MainWindow extends JFrame {
 	JButton StartButton;
 	boolean loggedIn = false;
 	public SoundPlayer menuMusic;
+	public TwitterPost twitter;
 
 	public MainWindow(String ip) {
+		// twitter :D
+		try {
+			twitter = new TwitterPost();
+		} catch (ClassNotFoundException | IOException | TwitterException
+				| URISyntaxException e) {
+
+			e.printStackTrace();
+		}
 
 		menuMusic = new SoundPlayer(
 				MainWindow.class.getResource("items/menuMusic.wav"));

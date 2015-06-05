@@ -144,8 +144,6 @@ public class Server {
 			String username = tokens[1].substring(9);
 			String score = tokens[2].substring(6);
 			int newScore = Integer.parseInt(score);
-			
-			System.out.println(username + " " + score);
 
 			if (tokens[3].toUpperCase().equals("MULTIPLAYER")) {
 				if (!multiplayerScores.containsKey(username)) {
